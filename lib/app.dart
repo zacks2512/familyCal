@@ -1,0 +1,177 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'data/mock_data.dart';
+import 'screens/add_event_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/today_screen.dart';
+import 'state/app_state.dart';
+
+class FamilyCalApp extends StatelessWidget {
+  const FamilyCalApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => createMockState(),
+      child: Builder(
+        builder: (context) {
+          final base = ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF1A73E8),
+              brightness: Brightness.light,
+            ),
+          );
+          final colorScheme = base.colorScheme;
+          return MaterialApp(
+            title: 'FamilyCal',
+            debugShowCheckedModeBanner: false,
+            theme: base.copyWith(
+              scaffoldBackgroundColor: Colors.white,
+              appBarTheme: base.appBarTheme.copyWith(
+                backgroundColor: Colors.white,
+                foregroundColor: colorScheme.onSurface,
+                elevation: 0,
+                titleTextStyle: base.textTheme.titleLarge?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              navigationBarTheme: base.navigationBarTheme.copyWith(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                indicatorColor: colorScheme.primary.withOpacity(0.12),
+                labelTextStyle: MaterialStateProperty.resolveWith(
+                  (states) => base.textTheme.labelMedium?.copyWith(
+                    fontWeight: states.contains(MaterialState.selected)
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                  ),
+                ),
+                iconTheme: MaterialStateProperty.resolveWith(
+                  (states) => IconThemeData(
+                    color: states.contains(MaterialState.selected)
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
+              snackBarTheme: base.snackBarTheme.copyWith(
+                backgroundColor: colorScheme.primary,
+                contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
+              ),
+            ),
+            home: const HomeShell(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _selectedIndex = 0;
+  final _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final destinations = [
+      _NavDestination(
+        icon: Icons.today_outlined,
+        selectedIcon: Icons.today,
+        label: 'Today',
+        page: const TodayScreen(),
+      ),
+      _NavDestination(
+        icon: Icons.calendar_view_day_outlined,
+        selectedIcon: Icons.calendar_month,
+        label: 'Calendar',
+        page: const CalendarScreen(),
+      ),
+      _NavDestination(
+        icon: Icons.add_circle_outline,
+        selectedIcon: Icons.add_circle,
+        label: 'Add',
+        page: const AddEventScreen(),
+      ),
+      _NavDestination(
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        label: 'Settings',
+        page: const SettingsScreen(),
+      ),
+    ];
+
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: destinations.map((dest) => _PageWrapper(child: dest.page)).toList(),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          _pageController.jumpToPage(index);
+        },
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: destinations
+            .map(
+              (dest) => NavigationDestination(
+                icon: Icon(dest.icon),
+                selectedIcon: Icon(dest.selectedIcon),
+                label: dest.label,
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _NavDestination {
+  const _NavDestination({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.page,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final Widget page;
+}
+
+class _PageWrapper extends StatelessWidget {
+  const _PageWrapper({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.of(context).padding;
+    return SafeArea(
+      top: padding.top == 0,
+      child: child,
+    );
+  }
+}
