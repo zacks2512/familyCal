@@ -177,30 +177,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _openDayDetailSheet(
-    BuildContext context,
-    FamilyCalState state,
-    DateTime day,
+  BuildContext context,
+  FamilyCalState state,
+  DateTime day,
   ) {
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.8,
-          child: _CalendarDayDrawer(
-            day: day,
-            isCompact: true,
-            showQuickAddInline: true,
-            onOpenQuickAdd: () {},
-            onSubmitQuickAdd: (event) =>
-                _submitQuickAdd(context, state, event, closeSheet: true),
-            onCloseQuickAdd: () => Navigator.of(context).maybePop(),
-          ),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85, // start tall
+          maxChildSize: 0.95,     // allow a bit more
+          minChildSize: 0.50,     // can collapse if needed
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: EdgeInsets.only(
+                // lift content when the keyboard shows
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: _CalendarDayDrawer(
+                day: day,
+                isCompact: true,
+                showQuickAddInline: true,
+                onOpenQuickAdd: () {},
+                onSubmitQuickAdd: (event) =>
+                    _submitQuickAdd(context, state, event, closeSheet: true),
+                onCloseQuickAdd: () => Navigator.of(context).maybePop(),
+              ),
+            );
+          },
         );
       },
     );
   }
+
 
   void _toggleQuickAdd(
     BuildContext context,
@@ -1335,23 +1349,22 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _responsibleId,
-            decoration: const InputDecoration(labelText: 'Assign to'),
-            items: const [
-              DropdownMenuItem(
-                value: '',
-                child: Text('Unassigned'),
+          value: _responsibleId,
+          decoration: const InputDecoration(labelText: 'Assign to'),
+          items: [
+            const DropdownMenuItem(
+              value: '',
+              child: Text('Unassigned'),
+            ),
+            ...state.members.map(
+              (member) => DropdownMenuItem(
+                value: member.id,
+                child: Text(member.displayName),
               ),
-            ]..addAll(
-                state.members.map(
-                  (member) => DropdownMenuItem(
-                    value: member.id,
-                    child: Text(member.displayName),
-                  ),
-                ),
-              ),
-            onChanged: (value) => setState(() => _responsibleId = value),
-          ),
+            ),
+          ],
+          onChanged: (value) => setState(() => _responsibleId = value),
+        ),
           const SizedBox(height: 16),
           Row(
             children: [
