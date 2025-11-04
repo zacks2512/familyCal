@@ -136,7 +136,9 @@ class _EventCardWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = state.childById(instance.event.childId);
     final place = state.placeById(instance.event.placeId);
-    final responsible = state.memberById(instance.event.responsibleMemberId);
+    final responsible =
+        state.memberByIdOrNull(instance.event.responsibleMemberId) ??
+            state.currentMember;
     final confirmation = state.findConfirmation(instance);
 
     return Padding(

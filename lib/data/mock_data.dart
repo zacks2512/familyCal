@@ -59,6 +59,10 @@ FamilyCalState createMockState() {
     ),
   ];
 
+  final now = DateTime.now();
+  final currentYear = now.year;
+  final currentMonth = now.month;
+  
   final recurringEvents = <RecurringEvent>[
     RecurringEvent(
       id: 'event-mia-drop',
@@ -69,7 +73,7 @@ FamilyCalState createMockState() {
       startTime: const TimeOfDay(hour: 8, minute: 0),
       endTime: const TimeOfDay(hour: 8, minute: 40),
       weekdays: {DateTime.monday, DateTime.tuesday, DateTime.wednesday, DateTime.thursday, DateTime.friday},
-      startDate: DateTime(2024, 8, 19),
+      startDate: DateTime(currentYear, currentMonth, 1),
       notes: 'Take backpack & allergy meds on Mondays.',
     ),
     RecurringEvent(
@@ -81,7 +85,7 @@ FamilyCalState createMockState() {
       startTime: const TimeOfDay(hour: 15, minute: 0),
       endTime: const TimeOfDay(hour: 15, minute: 30),
       weekdays: {DateTime.monday, DateTime.tuesday, DateTime.wednesday, DateTime.thursday},
-      startDate: DateTime(2024, 8, 19),
+      startDate: DateTime(currentYear, currentMonth, 1),
     ),
     RecurringEvent(
       id: 'event-noah-gym',
@@ -92,7 +96,7 @@ FamilyCalState createMockState() {
       startTime: const TimeOfDay(hour: 17, minute: 15),
       endTime: const TimeOfDay(hour: 17, minute: 45),
       weekdays: {DateTime.tuesday},
-      startDate: DateTime(2024, 9, 1),
+      startDate: DateTime(currentYear, currentMonth, 1),
       notes: 'Bring water bottle.',
     ),
   ];

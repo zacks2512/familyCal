@@ -102,11 +102,12 @@ class RecurringEvent {
     required this.childId,
     required this.placeId,
     required this.role,
-    required this.responsibleMemberId,
     required this.startTime,
     required this.endTime,
     required this.weekdays,
     required this.startDate,
+    this.responsibleMemberId,
+    this.title,
     this.endDate,
     this.notes,
     this.reminderMinutes = const [15],
@@ -116,11 +117,12 @@ class RecurringEvent {
   final String childId;
   final String placeId;
   final EventRole role;
-  final String responsibleMemberId;
+  final String? responsibleMemberId;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final Set<int> weekdays;
   final DateTime startDate;
+  final String? title;
   final DateTime? endDate;
   final String? notes;
   final List<int> reminderMinutes;
@@ -190,7 +192,7 @@ class ConfirmationLog {
     required this.eventId,
     required this.childId,
     required this.placeId,
-    required this.responsibleMemberId,
+    this.responsibleMemberId,
     required this.windowStart,
     required this.confirmedById,
     required this.confirmedAt,
@@ -203,7 +205,7 @@ class ConfirmationLog {
   final String eventId;
   final String childId;
   final String placeId;
-  final String responsibleMemberId;
+  final String? responsibleMemberId;
   final DateTime windowStart;
   final String confirmedById;
   final DateTime confirmedAt;

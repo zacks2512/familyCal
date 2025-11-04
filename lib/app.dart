@@ -5,7 +5,6 @@ import 'data/mock_data.dart';
 import 'screens/add_event_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/today_screen.dart';
 import 'state/app_state.dart';
 
 class FamilyCalApp extends StatelessWidget {
@@ -92,12 +91,6 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final destinations = [
-      _NavDestination(
-        icon: Icons.today_outlined,
-        selectedIcon: Icons.today,
-        label: 'Today',
-        page: const TodayScreen(),
-      ),
       _NavDestination(
         icon: Icons.calendar_view_day_outlined,
         selectedIcon: Icons.calendar_month,

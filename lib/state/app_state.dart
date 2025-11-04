@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../models/entities.dart';
 
+enum CalendarViewMode { day, week, month }
+
 class FamilyCalState extends ChangeNotifier {
   FamilyCalState({
     required List<FamilyMember> members,
@@ -27,7 +29,9 @@ class FamilyCalState extends ChangeNotifier {
 
   String _currentMemberId;
   DateTime _selectedCalendarDay = DateUtils.dateOnly(DateTime.now());
-  bool _showAgendaView = true;
+  CalendarViewMode _calendarViewMode = CalendarViewMode.month;
+  DateTime _visibleMonth =
+      DateTime(DateTime.now().year, DateTime.now().month);
 
   /// Exposed getters
   List<FamilyMember> get members => _members;
@@ -39,7 +43,8 @@ class FamilyCalState extends ChangeNotifier {
   FamilyMember get currentMember =>
       _members.firstWhere((member) => member.id == _currentMemberId);
   DateTime get selectedCalendarDay => _selectedCalendarDay;
-  bool get showAgendaView => _showAgendaView;
+  CalendarViewMode get calendarViewMode => _calendarViewMode;
+  DateTime get visibleMonth => _visibleMonth;
 
   void selectCalendarDay(DateTime date) {
     final normalized = DateUtils.dateOnly(date);
@@ -47,14 +52,44 @@ class FamilyCalState extends ChangeNotifier {
       return;
     }
     _selectedCalendarDay = normalized;
+    _visibleMonth = DateTime(normalized.year, normalized.month);
     notifyListeners();
   }
 
-  void toggleCalendarView(bool agenda) {
-    if (_showAgendaView == agenda) {
+  void setCalendarViewMode(CalendarViewMode mode) {
+    if (_calendarViewMode == mode) {
       return;
     }
-    _showAgendaView = agenda;
+    _calendarViewMode = mode;
+    notifyListeners();
+  }
+
+  void setVisibleMonth(DateTime month) {
+    final normalized = DateTime(month.year, month.month);
+    if (_visibleMonth.year == normalized.year &&
+        _visibleMonth.month == normalized.month) {
+      return;
+    }
+    _visibleMonth = normalized;
+    notifyListeners();
+  }
+
+  void jumpMonth(int offset) {
+    final nextMonth = DateTime(
+      _visibleMonth.year,
+      _visibleMonth.month + offset,
+    );
+    setVisibleMonth(nextMonth);
+    if (!DateUtils.isSameMonth(_selectedCalendarDay, nextMonth)) {
+      _selectedCalendarDay = DateTime(nextMonth.year, nextMonth.month, 1);
+      notifyListeners();
+    }
+  }
+
+  void jumpToToday() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    _selectedCalendarDay = today;
+    _visibleMonth = DateTime(today.year, today.month);
     notifyListeners();
   }
 
@@ -155,7 +190,8 @@ class FamilyCalState extends ChangeNotifier {
       placeId: instance.event.placeId,
       responsibleMemberId: instance.event.responsibleMemberId,
       windowStart: instance.windowStart,
-      confirmedById: instance.event.responsibleMemberId,
+      confirmedById:
+          instance.event.responsibleMemberId ?? _currentMemberId,
       confirmedAt: instance.windowEnd,
       geoOk: false,
       offline: false,
@@ -181,6 +217,18 @@ class FamilyCalState extends ChangeNotifier {
 
   FamilyMember memberById(String id) =>
       _members.firstWhere((member) => member.id == id);
+
+  FamilyMember? memberByIdOrNull(String? id) {
+    if (id == null) {
+      return null;
+    }
+    for (final member in _members) {
+      if (member.id == id) {
+        return member;
+      }
+    }
+    return null;
+  }
 
   void addChild(FamilyChild child) {
     _children.add(child);

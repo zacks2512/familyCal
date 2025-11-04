@@ -23,7 +23,7 @@ class EventCard extends StatelessWidget {
   final EventInstance instance;
   final FamilyChild child;
   final FamilyPlace place;
-  final FamilyMember responsible;
+  final FamilyMember? responsible;
   final DateTime now;
   final VoidCallback? onConfirm;
   final VoidCallback? onTap;
@@ -35,6 +35,8 @@ class EventCard extends StatelessWidget {
   bool get _windowOpen => instance.windowOpenAt(now);
   bool get _windowComplete => now.isAfter(instance.windowEnd);
   bool get _isConfirmed => confirmation != null;
+  bool get _assignmentMissing =>
+      instance.event.responsibleMemberId == null || responsible == null;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +46,9 @@ class EventCard extends StatelessWidget {
     final titleStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w600,
     );
+    final titleText = instance.event.title?.isNotEmpty == true
+        ? instance.event.title!
+        : '${child.displayName} • ${role.label}';
     final timeRange =
         '${_timeFormat.format(instance.windowStart)} – ${_timeFormat.format(instance.windowEnd)}';
 
@@ -93,7 +98,7 @@ class EventCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${child.displayName} • ${role.label}', style: titleStyle),
+                      Text(titleText, style: titleStyle),
                       const SizedBox(height: 4),
                       Text(
                         timeRange,
@@ -114,14 +119,27 @@ class EventCard extends StatelessWidget {
               children: [
                 _buildAssistChip(
                   context,
+                  icon: Icons.child_care_outlined,
+                  label: child.displayName,
+                ),
+                _buildAssistChip(
+                  context,
                   icon: Icons.place_outlined,
                   label: place.name,
                 ),
                 _buildAssistChip(
                   context,
                   icon: Icons.person_outline,
-                  label: 'Responsible: ${responsible.displayName.split(' ').first}',
+                  label: _assignmentMissing
+                      ? 'Unassigned'
+                      : 'Responsible: ${responsible!.displayName.split(' ').first}',
                 ),
+                if (_assignmentMissing)
+                  _buildAssistChip(
+                    context,
+                    icon: Icons.warning_amber_rounded,
+                    label: 'Assign pickup/drop-off',
+                  ),
                 if (instance.duration.inMinutes > 0)
                   _buildAssistChip(
                     context,
