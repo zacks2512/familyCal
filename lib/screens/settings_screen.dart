@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../models/entities.dart';
 import '../state/app_state.dart';
 import 'log_screen.dart';
 
@@ -12,185 +14,87 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool remindersEnabled = true;
-  bool partnerAlertsEnabled = true;
-  bool quietHours = false;
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
-    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          _SectionHeader(title: 'Family'),
+          // CHILDREN (with color picker)
+          const _SectionHeader(title: 'Children'),
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.home_outlined),
-                  title: Text(state.currentMember.displayName),
-                  subtitle: Text(state.currentMember.isOwner
-                      ? 'Family owner'
-                      : 'Member'),
-                  trailing: Chip(
-                    label: Text('${state.members.length} adults'),
-                    avatar: const Icon(Icons.group),
+                ...state.children.map(
+                  (child) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: child.color.withOpacity(0.25),
+                      child: Text(
+                        child.displayName.substring(0, 1),
+                        style: TextStyle(
+                          color: child.color.computeLuminance() > 0.5
+                              ? Colors.black
+                              : Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    title: Text(child.displayName),
                   ),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.mail_outline),
-                  title: const Text('Invite partner'),
-                  subtitle: const Text('Send magic link via SMS or email'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invite link copied to clipboard.')),
-                    );
-                  },
+                  leading: const Icon(Icons.add_circle_outline),
+                  title: const Text('Add child'),
+                  onTap: () => _showAddChildDialog(context, state),
                 ),
               ],
             ),
           ),
+
           const SizedBox(height: 24),
-          _SectionHeader(title: 'Places & geofence'),
-          ...state.places.map(
-            (place) => Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      place.name,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      place.address.isEmpty ? 'No address on file' : place.address,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.radar_outlined, size: 20),
-                        const SizedBox(width: 8),
-                        Text('${place.radiusMeters} m radius'),
-                      ],
-                    ),
-                    Slider(
-                      value: place.radiusMeters.toDouble(),
-                      min: 80,
-                      max: 250,
-                      divisions: 17,
-                      label: '${place.radiusMeters} m',
-                      onChanged: (value) {
-                        final updated =
-                            place.copyWith(radiusMeters: value.round());
-                        context.read<FamilyCalState>().updatePlace(updated);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _SectionHeader(title: 'Notifications'),
+
+          // FAMILY MEMBERS (merged) + invite option
+          const _SectionHeader(title: 'Family members'),
           Card(
             child: Column(
               children: [
-                SwitchListTile(
-                  value: remindersEnabled,
-                  onChanged: (value) => setState(() => remindersEnabled = value),
-                  title: const Text('Reminders'),
-                  subtitle:
-                      const Text('T−15 and window start pushes to responsible adult'),
-                ),
-                SwitchListTile(
-                  value: partnerAlertsEnabled,
-                  onChanged: (value) => setState(() => partnerAlertsEnabled = value),
-                  title: const Text('Partner updates'),
-                  subtitle:
-                      const Text('Send “Done ✅” push once confirmation is marked'),
-                ),
-                SwitchListTile(
-                  value: quietHours,
-                  onChanged: (value) => setState(() => quietHours = value),
-                  title: const Text('Quiet hours (22:00 – 06:00)'),
-                  subtitle: const Text('Late nudges will be suppressed overnight'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          _SectionHeader(title: 'Privacy'),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Location retention'),
-              subtitle: const Text(
-                'Raw GPS kept for 14 days for troubleshooting. Only geo ✅ flag stored in history.',
-              ),
-              trailing: TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Privacy preferences saved.'),
-                    ),
-                  );
-                },
-                child: const Text('Review policy'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _SectionHeader(title: 'Diagnostics'),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.analytics_outlined),
-                  title: const Text('Analytics event log'),
-                  subtitle: const Text('View local analytics queue before upload'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Analytics debug view opening...'),
-                      ),
-                    );
-                  },
+                ...state.members.map(
+                  (member) => ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: Text(member.displayName),
+                    subtitle:
+                        Text(member.email ?? member.phone ?? 'No contact info'),
+                    trailing: member.isOwner
+                        ? const Chip(
+                            label: Text('Owner'),
+                            visualDensity: VisualDensity.compact,
+                          )
+                        : null,
+                  ),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.bug_report_outlined),
-                  title: const Text('Send feedback'),
-                  subtitle: const Text('Sends console log & device info to FamilyCal'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Feedback composer would open here.'),
-                      ),
-                    );
-                  },
+                  leading: const Icon(Icons.person_add_outlined),
+                  title: const Text('Add / Invite member'),
+                  onTap: () => _showAddOrInviteMemberDialog(context, state),
                 ),
               ],
             ),
           ),
+
           const SizedBox(height: 24),
-          _SectionHeader(title: 'Extra info'),
+
+          // EXTRA
+          const _SectionHeader(title: 'Extra'),
           Card(
             child: ListTile(
               leading: const Icon(Icons.fact_check_outlined),
-              title: const Text('Activity log'),
-              subtitle: const Text('Review past confirmations and export history'),
+              title: const Text('Activity Log'),
+              subtitle: const Text('Review past confirmations'),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -201,6 +105,204 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ---------- DIALOGS ----------
+
+  void _showAddChildDialog(BuildContext context, FamilyCalState state) {
+    final nameController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    Color selectedColor = Colors.pink.shade300;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add child'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Enter child\'s name',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Choose color:'),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Colors.pink.shade300,
+                    Colors.orange.shade400,
+                    Colors.blue.shade400,
+                    Colors.green.shade400,
+                    Colors.purple.shade400,
+                    Colors.red.shade400,
+                    Colors.teal.shade400,
+                    Colors.amber.shade400,
+                  ].map((color) {
+                    final isSelected = color == selectedColor;
+                    return InkWell(
+                      onTap: () => setDialogState(() => selectedColor = color),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: isSelected
+                              ? Border.all(color: Colors.black, width: 3)
+                              : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check, color: Colors.white)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!formKey.currentState!.validate()) return;
+                final child = FamilyChild(
+                  id: 'child-${DateTime.now().millisecondsSinceEpoch}',
+                  displayName: nameController.text.trim(),
+                  color: selectedColor,
+                );
+                state.addChild(child);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Added ${child.displayName}')),
+                );
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddOrInviteMemberDialog(BuildContext context, FamilyCalState state) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool sendInvite = true;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSB) => AlertDialog(
+          title: const Text('Add / Invite member'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Enter member\'s name',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Please enter a name' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (optional)',
+                    hintText: 'member@example.com',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone (optional)',
+                    hintText: '+1 555 123 4567',
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  value: sendInvite,
+                  onChanged: (v) => setSB(() => sendInvite = v ?? true),
+                  title: const Text('Send invite link'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+
+                final member = FamilyMember(
+                  id: 'member-${DateTime.now().millisecondsSinceEpoch}',
+                  displayName: nameController.text.trim(),
+                  email: emailController.text.trim().isEmpty
+                      ? null
+                      : emailController.text.trim(),
+                  phone: phoneController.text.trim().isEmpty
+                      ? null
+                      : phoneController.text.trim(),
+                );
+
+                state.addMember(member);
+
+                if (sendInvite) {
+                  await Clipboard.setData(
+                    ClipboardData(
+                      text: 'https://familycal.app/invite/${member.id}',
+                    ),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invite link copied ✅')),
+                    );
+                  }
+                }
+
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
       ),
     );
   }
