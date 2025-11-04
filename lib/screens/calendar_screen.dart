@@ -177,9 +177,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _openDayDetailSheet(
-  BuildContext context,
-  FamilyCalState state,
-  DateTime day,
+    BuildContext context,
+    FamilyCalState state,
+    DateTime day,
   ) {
     showModalBottomSheet<void>(
       context: context,
@@ -189,14 +189,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (context) {
         return DraggableScrollableSheet(
           expand: false,
-          initialChildSize: 0.85, // start tall
-          maxChildSize: 0.95,     // allow a bit more
-          minChildSize: 0.50,     // can collapse if needed
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          minChildSize: 0.50,
           builder: (context, scrollController) {
             return SingleChildScrollView(
               controller: scrollController,
               padding: EdgeInsets.only(
-                // lift content when the keyboard shows
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
               child: _CalendarDayDrawer(
@@ -214,7 +213,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
-
 
   void _toggleQuickAdd(
     BuildContext context,
@@ -455,10 +453,8 @@ class _MonthView extends StatelessWidget {
       // Fill the available height with a 7x(5|6) grid.
       return LayoutBuilder(
         builder: (context, c) {
-          final rows = (days.length / 7).ceil(); // 5 or 6 depending on month
+          final rows = (days.length / 7).ceil();
           const cols = 7;
-
-          // Match the horizontal padding you already use.
           const horizontalPadding = 8.0 * 2;
 
           final cellWidth = (c.maxWidth - horizontalPadding) / cols;
@@ -499,7 +495,7 @@ class _MonthView extends StatelessWidget {
       );
     }
 
-    // Wide layout: keep existing behavior with a square grid and drawer below.
+    // Wide layout.
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -882,6 +878,26 @@ class _DayEventTile extends StatelessWidget {
   }
 }
 
+/// Dynamic height for the week strip based on device text scale and theme.
+double _weekStripHeight(BuildContext context) {
+  final theme = Theme.of(context);
+  final scale = MediaQuery.textScaleFactorOf(context);
+  const vPad = 10.0 * 2;
+  const gap = 4.0;
+
+  final weekdayFs = (theme.textTheme.bodyMedium?.fontSize ?? 14) * scale;
+  final dayNumberFs = (theme.textTheme.titleLarge?.fontSize ?? 22) * scale;
+
+  final weekdayLine = weekdayFs * 1.2;
+  final dayNumberLine = dayNumberFs * 1.2;
+
+  final eventRow = (12.0 * scale) * 1.2;
+  final eventsBlock = eventRow * 2;
+
+  final estimated = vPad + weekdayLine + dayNumberLine + gap + eventsBlock;
+  return estimated.clamp(96.0, 148.0);
+}
+
 class _WeekView extends StatelessWidget {
   const _WeekView({
     required this.selectedDay,
@@ -913,8 +929,10 @@ class _WeekView extends StatelessWidget {
       ),
     );
 
+    final stripHeight = _weekStripHeight(context);
+
     final dayStrip = SizedBox(
-      height: 100,
+      height: stripHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1006,7 +1024,7 @@ class _WeekDayCard extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: 120,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10), // tighter to avoid overflow
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -1020,30 +1038,37 @@ class _WeekDayCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 DateFormat('EEE').format(day),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 '${day.day}',
-                style: theme.textTheme.headlineSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge, // slightly smaller than headlineSmall
               ),
-              const Spacer(),
-              if (events.isEmpty)
-                const Text('No events', style: TextStyle(fontSize: 12))
-              else
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: events
-                        .take(3)
-                        .map(
-                          (event) => Padding(
+              const SizedBox(height: 4),
+
+              // Flexible events block
+              Expanded(
+                child: events.isEmpty
+                    ? const Align(
+                        alignment: Alignment.topLeft,
+                        child: Text('No events', style: TextStyle(fontSize: 12)),
+                      )
+                    : ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: events.length.clamp(0, 3),
+                        itemBuilder: (context, i) {
+                          final event = events[i];
+                          return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Row(
                               children: [
@@ -1067,16 +1092,19 @@ class _WeekDayCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
+                          );
+                        },
+                      ),
+              ),
+
               if (hasWarning)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Icon(Icons.warning_amber_rounded,
-                      size: 16, color: theme.colorScheme.error),
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: theme.colorScheme.error,
+                  ),
                 ),
             ],
           ),
@@ -1349,22 +1377,22 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-          value: _responsibleId,
-          decoration: const InputDecoration(labelText: 'Assign to'),
-          items: [
-            const DropdownMenuItem(
-              value: '',
-              child: Text('Unassigned'),
-            ),
-            ...state.members.map(
-              (member) => DropdownMenuItem(
-                value: member.id,
-                child: Text(member.displayName),
+            value: _responsibleId,
+            decoration: const InputDecoration(labelText: 'Assign to'),
+            items: [
+              const DropdownMenuItem(
+                value: '',
+                child: Text('Unassigned'),
               ),
-            ),
-          ],
-          onChanged: (value) => setState(() => _responsibleId = value),
-        ),
+              ...state.members.map(
+                (member) => DropdownMenuItem(
+                  value: member.id,
+                  child: Text(member.displayName),
+                ),
+              ),
+            ],
+            onChanged: (value) => setState(() => _responsibleId = value),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
