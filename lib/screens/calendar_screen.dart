@@ -198,8 +198,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: _CalendarDayDrawer(
                 day: day,
                 isCompact: true,
-                showQuickAddInline: true,
-                onOpenQuickAdd: () {},
+                // 🔧 show the "Add Event" button first (no inline form by default)
+                showQuickAddInline: false,
+                onOpenQuickAdd: () {
+                  // on phones, tapping the button opens the quick-add sheet
+                  _openQuickAddSheet(context, state);
+                },
                 onSubmitQuickAdd: (event) =>
                     _submitQuickAdd(context, state, event, closeSheet: true),
                 onCloseQuickAdd: () => Navigator.of(context).maybePop(),
@@ -210,6 +214,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
+
 
   void _toggleQuickAdd(
     BuildContext context,
