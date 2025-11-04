@@ -268,8 +268,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       minute: defaultStart.minute,
     );
     _quickAddRole = EventRole.dropOff;
-    _quickAddChildId = state.children.isNotEmpty ? state.children.first.id : null;
-    _quickAddPlaceId = state.places.isNotEmpty ? state.places.first.id : null;
+    _quickAddChildId =
+        state.children.isNotEmpty ? state.children.first.id : null;
+    _quickAddPlaceId =
+        state.places.isNotEmpty ? state.places.first.id : null;
     _quickAddResponsibleId = state.currentMemberId;
   }
 
@@ -297,7 +299,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     state.addEvent(newEvent);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added ${event.title} on ${DateFormat.yMMMd().format(event.date)}'),
+        content: Text(
+            'Added ${event.title} on ${DateFormat.yMMMd().format(event.date)}'),
       ),
     );
     if (closeSheet) {
@@ -333,7 +336,8 @@ class _CalendarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final segmented = SegmentedButton<CalendarViewMode>(
       style: ButtonStyle(
-        padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12)),
+        padding:
+            MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12)),
         visualDensity: VisualDensity.comfortable,
       ),
       segments: const [
@@ -377,12 +381,12 @@ class _CalendarHeader extends StatelessWidget {
 
     if (isCompact) {
       return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              navigationRow,
-              const SizedBox(height: 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            navigationRow,
+            const SizedBox(height: 12),
             segmented,
           ],
         ),
@@ -431,40 +435,57 @@ class _MonthView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = _buildDays(visibleMonth);
-    final theme = Theme.of(context);
     final state = context.read<FamilyCalState>();
 
     if (isCompact) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: 0.75,
-          ),
-          itemCount: days.length,
-          itemBuilder: (context, index) {
-            final day = days[index];
-            final events = instancesForDay(day);
-            final isSelected = DateUtils.isSameDay(day, selectedDay);
-            final inMonth = DateUtils.isSameMonth(day, visibleMonth);
-            final hasWarning = events.any(
-              (event) =>
-                  state.memberByIdOrNull(event.event.responsibleMemberId) == null,
-            );
-            return _MonthCell(
-              day: day,
-              isSelected: isSelected,
-              inMonth: inMonth,
-              events: events,
-              hasWarning: hasWarning,
-              onTap: () => onSelectDay(day),
-            );
-          },
-        ),
+      // Fill the available height with a 7x(5|6) grid.
+      return LayoutBuilder(
+        builder: (context, c) {
+          final rows = (days.length / 7).ceil(); // 5 or 6 depending on month
+          const cols = 7;
+
+          // Match the horizontal padding you already use.
+          const horizontalPadding = 8.0 * 2;
+
+          final cellWidth = (c.maxWidth - horizontalPadding) / cols;
+          final cellHeight = c.maxHeight / rows;
+          final aspect = cellWidth / cellHeight;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                childAspectRatio: aspect,
+              ),
+              itemCount: days.length,
+              itemBuilder: (context, index) {
+                final day = days[index];
+                final events = instancesForDay(day);
+                final isSelected = DateUtils.isSameDay(day, selectedDay);
+                final inMonth = DateUtils.isSameMonth(day, visibleMonth);
+                final hasWarning = events.any(
+                  (event) => state
+                          .memberByIdOrNull(event.event.responsibleMemberId) ==
+                      null,
+                );
+                return _MonthCell(
+                  day: day,
+                  isSelected: isSelected,
+                  inMonth: inMonth,
+                  events: events,
+                  hasWarning: hasWarning,
+                  onTap: () => onSelectDay(day),
+                );
+              },
+            ),
+          );
+        },
       );
     }
 
+    // Wide layout: keep existing behavior with a square grid and drawer below.
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -485,8 +506,9 @@ class _MonthView extends StatelessWidget {
                 final isSelected = DateUtils.isSameDay(day, selectedDay);
                 final inMonth = DateUtils.isSameMonth(day, visibleMonth);
                 final hasWarning = events.any(
-                  (event) =>
-                      state.memberByIdOrNull(event.event.responsibleMemberId) == null,
+                  (event) => state
+                          .memberByIdOrNull(event.event.responsibleMemberId) ==
+                      null,
                 );
                 return _MonthCell(
                   day: day,
@@ -556,9 +578,10 @@ class _MonthCell extends StatelessWidget {
         : theme.dividerColor.withOpacity(0.4);
 
     final calendarState = context.read<FamilyCalState>();
-    final maxVisible = 1;
+    const maxVisible = 1;
     final visibleEvents = events.take(maxVisible).toList();
-    final remainingCount = events.length > maxVisible ? events.length - maxVisible : 0;
+    final remainingCount =
+        events.length > maxVisible ? events.length - maxVisible : 0;
 
     return Semantics(
       label:
@@ -573,86 +596,85 @@ class _MonthCell extends StatelessWidget {
             color: bgColor,
           ),
           padding: const EdgeInsets.all(4),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${day.day}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: inMonth
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${day.day}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: inMonth
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                ),
+              ),
+              if (events.isNotEmpty)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (visibleEvents.isNotEmpty)
+                          for (final event in visibleEvents)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 4,
+                                    margin: const EdgeInsets.only(right: 4),
+                                    decoration: BoxDecoration(
+                                      color: event.event.role.color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      event.event.title?.isNotEmpty == true
+                                          ? event.event.title!
+                                          : calendarState
+                                              .childById(event.event.childId)
+                                              .displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        if (remainingCount > 0)
+                          Text(
+                            '+$remainingCount',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        const Spacer(),
+                        if (hasWarning)
+                          Icon(
+                            Icons.error,
+                            size: 12,
+                            color: theme.colorScheme.error,
+                          ),
+                      ],
                     ),
                   ),
-                  if (events.isNotEmpty)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (visibleEvents.isNotEmpty)
-                              for (final event in visibleEvents)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 4,
-                                        height: 4,
-                                        margin: const EdgeInsets.only(right: 4),
-                                        decoration: BoxDecoration(
-                                          color: event.event.role.color,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          event.event.title?.isNotEmpty == true
-                                              ? event.event.title!
-                                              : calendarState.childById(event.event.childId).displayName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.labelSmall?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            if (remainingCount > 0)
-                              Text(
-                                '+$remainingCount',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            const Spacer(),
-                            if (hasWarning)
-                              Icon(
-                                Icons.error,
-                                size: 12,
-                                color: theme.colorScheme.error,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
 class _CalendarDayDrawer extends StatelessWidget {
   const _CalendarDayDrawer({
     required this.day,
@@ -1004,33 +1026,36 @@ class _WeekDayCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
-                    children: events.take(3).map(
-                      (event) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: event.event.role.color,
-                                shape: BoxShape.circle,
-                              ),
+                    children: events
+                        .take(3)
+                        .map(
+                          (event) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: event.event.role.color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    event.event.title ??
+                                        event.event.role.label.toLowerCase(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                event.event.title ??
-                                    event.event.role.label.toLowerCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).toList(),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               if (hasWarning)
@@ -1207,9 +1232,10 @@ class _QuickAddFormState extends State<_QuickAddForm> {
     _end = widget.initialEnd ??
         TimeOfDay(hour: (_start.hour + 1) % 24, minute: _start.minute);
     _role = widget.initialRole ?? EventRole.dropOff;
-    _childId = widget.childId ?? (state.children.isNotEmpty ? state.children.first.id : null);
-    _placeId =
-        widget.placeId ?? (state.places.isNotEmpty ? state.places.first.id : null);
+    _childId = widget.childId ??
+        (state.children.isNotEmpty ? state.children.first.id : null);
+    _placeId = widget.placeId ??
+        (state.places.isNotEmpty ? state.places.first.id : null);
     _responsibleId = widget.responsibleId ?? state.currentMemberId;
   }
 
@@ -1311,18 +1337,19 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           DropdownButtonFormField<String>(
             value: _responsibleId,
             decoration: const InputDecoration(labelText: 'Assign to'),
-            items: [
-              const DropdownMenuItem(
+            items: const [
+              DropdownMenuItem(
                 value: '',
                 child: Text('Unassigned'),
               ),
-              ...state.members.map(
-                (member) => DropdownMenuItem(
-                  value: member.id,
-                  child: Text(member.displayName),
+            ]..addAll(
+                state.members.map(
+                  (member) => DropdownMenuItem(
+                    value: member.id,
+                    child: Text(member.displayName),
+                  ),
                 ),
               ),
-            ],
             onChanged: (value) => setState(() => _responsibleId = value),
           ),
           const SizedBox(height: 16),
