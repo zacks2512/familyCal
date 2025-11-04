@@ -235,35 +235,75 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _openQuickAddSheet(BuildContext context, FamilyCalState state) {
     _prepareDefaults(state);
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SafeArea(
-            top: false,
-            child: _QuickAddForm(
-              titleController: _titleController,
-              initialStart: _quickAddStart!,
-              initialEnd: _quickAddEnd!,
-              initialRole: _quickAddRole!,
-              date: context.read<FamilyCalState>().selectedCalendarDay,
-              childId: _quickAddChildId,
-              placeId: _quickAddPlaceId,
-              responsibleId: _quickAddResponsibleId,
-              onSubmit: (event) {
-                _submitQuickAdd(context, state, event, closeSheet: true);
-              },
-            ),
-          ),
+        final mq = MediaQuery.of(context);
+        final height = mq.size.height;
+        final isLandscape = mq.orientation == Orientation.landscape;
+
+        // Dynamic sizes per device/orientation
+        final double initialSize = height < 680
+            ? 0.96
+            : (height < 820 ? 0.90 : 0.85); // small phones -> taller by default
+        final double maxSize = isLandscape ? 0.90 : 0.98; // allow almost full on portrait
+        const double minSize = 0.50; // can collapse if needed
+
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: initialSize,
+          maxChildSize: maxSize,
+          minChildSize: minSize,
+          builder: (context, scrollController) {
+            return SafeArea(
+              top: false,
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  // Keep a nice readable width on tablets/landscape
+                  const double kMaxFormWidth = 600;
+
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: 12,
+                      // lift content above the keyboard dynamically
+                      bottom: mq.viewInsets.bottom + 16,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: kMaxFormWidth),
+                        child: _QuickAddForm(
+                          titleController: _titleController,
+                          initialStart: _quickAddStart!,
+                          initialEnd: _quickAddEnd!,
+                          initialRole: _quickAddRole!,
+                          date: context.read<FamilyCalState>().selectedCalendarDay,
+                          childId: _quickAddChildId,
+                          placeId: _quickAddPlaceId,
+                          responsibleId: _quickAddResponsibleId,
+                          onSubmit: (event) {
+                            _submitQuickAdd(context, state, event, closeSheet: true);
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );
   }
+
 
   void _prepareDefaults(FamilyCalState state) {
     _titleController.clear();
