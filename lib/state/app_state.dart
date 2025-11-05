@@ -217,6 +217,18 @@ class FamilyCalState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateEvent(RecurringEvent event) {
+    final index = _events.indexWhere((e) => e.id == event.id);
+    if (index == -1) return;
+    _events[index] = event;
+    notifyListeners();
+  }
+
+  void deleteEvent(String eventId) {
+    _events.removeWhere((e) => e.id == eventId);
+    notifyListeners();
+  }
+
   List<ConfirmationLog> logsForChildAndMonth(
     String? childId,
     DateTime month, {

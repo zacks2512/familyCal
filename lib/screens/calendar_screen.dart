@@ -1106,11 +1106,7 @@ class _DayEventTile extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Edit event',
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Edit flow coming soon.')),
-                    );
-                  },
+                  onPressed: () => _showEditEventSheet(context, state, instance),
                   icon: const Icon(Icons.edit_outlined),
                 ),
               ],
@@ -1151,9 +1147,138 @@ class _DayEventTile extends StatelessWidget {
       ),
     );
   }
+
+  static void _showEditEventSheet(
+    BuildContext context,
+    FamilyCalState state,
+    EventInstance instance,
+  ) {
+    final event = instance.event;
+    final place = state.placeById(event.placeId);
+    final formKey = GlobalKey<_EditEventFormState>();
+    
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (context) {
+        final mq = MediaQuery.of(context);
+        final height = mq.size.height;
+        final isLandscape = mq.orientation == Orientation.landscape;
+
+        final double initialSize = height < 680 ? 0.96 : (height < 820 ? 0.90 : 0.85);
+        final double maxSize = isLandscape ? 0.90 : 0.98;
+        const double minSize = 0.50;
+
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: initialSize,
+          maxChildSize: maxSize,
+          minChildSize: minSize,
+          builder: (context, scrollController) {
+            return SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 12,
+                  bottom: mq.viewInsets.bottom + 16,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      children: [
+                        _EditEventForm(
+                          key: formKey,
+                          event: event,
+                          placeName: place.name,
+                          date: instance.windowStart,
+                          onSubmit: (updatedEvent) {
+                            state.updateEvent(updatedEvent);
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Updated ${updatedEvent.title}')),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            TextButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _showDeleteConfirmation(context, state, instance);
+                              },
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Delete'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: () => formKey.currentState?.saveEvent(),
+                              child: const Text('Save'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static void _showDeleteConfirmation(
+    BuildContext context,
+    FamilyCalState state,
+    EventInstance instance,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete event?'),
+        content: Text('Are you sure you want to delete "${instance.event.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              state.deleteEvent(instance.event.id);
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Event deleted')),
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _DayView extends StatelessWidget {
+class _DayView extends StatelessWidget{
   const _DayView({
     required this.day,
     required this.events,
@@ -1594,5 +1719,291 @@ class _TimeField extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _EditEventForm extends StatefulWidget {
+  const _EditEventForm({
+    super.key,
+    required this.event,
+    required this.placeName,
+    required this.date,
+    required this.onSubmit,
+  });
+
+  final RecurringEvent event;
+  final String placeName;
+  final DateTime date;
+  final ValueChanged<RecurringEvent> onSubmit;
+
+  @override
+  State<_EditEventForm> createState() => _EditEventFormState();
+}
+
+class _EditEventFormState extends State<_EditEventForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _titleController;
+  late TextEditingController _placeController;
+  late TimeOfDay _start;
+  late TimeOfDay _end;
+  late EventRole _role;
+  late String? _childId;
+  late String? _responsibleId;
+  RepeatOption _repeatOption = RepeatOption.noRepeat;
+  DateTime? _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.event.title ?? '');
+    _placeController = TextEditingController(text: widget.placeName);
+    _start = widget.event.startTime;
+    _end = widget.event.endTime;
+    _role = widget.event.role;
+    _childId = widget.event.childId;
+    _responsibleId = widget.event.responsibleMemberId;
+    _endDate = widget.event.endDate;
+    
+    // Determine repeat option from weekdays
+    if (widget.event.weekdays.length == 7) {
+      _repeatOption = RepeatOption.daily;
+    } else if (widget.event.weekdays.length == 1) {
+      _repeatOption = RepeatOption.noRepeat;
+    } else {
+      _repeatOption = RepeatOption.weekly;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _placeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<FamilyCalState>();
+    
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(labelText: 'Title'),
+            validator: (value) => value == null || value.trim().isEmpty ? 'Enter a title' : null,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _TimeField(
+                  label: 'Start',
+                  time: _start,
+                  onChanged: (value) => setState(() => _start = value),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _TimeField(
+                  label: 'End',
+                  time: _end,
+                  onChanged: (value) => setState(() => _end = value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _childId,
+            decoration: const InputDecoration(labelText: 'Child'),
+            items: state.children
+                .map((child) => DropdownMenuItem(value: child.id, child: Text(child.displayName)))
+                .toList(),
+            onChanged: (value) => setState(() => _childId = value),
+            validator: (value) => value == null ? 'Select a child' : null,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _placeController,
+            decoration: const InputDecoration(
+              labelText: 'Place',
+              hintText: 'School, gym, home, etc.',
+            ),
+            validator: (value) => value == null || value.trim().isEmpty ? 'Enter a place' : null,
+          ),
+          const SizedBox(height: 12),
+          SegmentedButton<EventRole>(
+            segments: EventRole.values.map((role) => ButtonSegment(value: role, label: Text(role.label))).toList(),
+            selected: {_role},
+            onSelectionChanged: (value) => setState(() => _role = value.first),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _responsibleId,
+            decoration: const InputDecoration(labelText: 'Assign to'),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('Unassigned')),
+              ...state.members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.displayName))),
+            ],
+            onChanged: (value) => setState(() => _responsibleId = value),
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.repeat),
+            title: const Text('Repeat'),
+            subtitle: Text(_getRepeatText()),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showRepeatDialog(context),
+          ),
+          if (_repeatOption != RepeatOption.noRepeat) ...[
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Text(_endDate == null
+                  ? 'Repeat until... (optional)'
+                  : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
+              trailing: _endDate != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() => _endDate = null),
+                    )
+                  : null,
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _endDate ?? widget.date.add(const Duration(days: 90)),
+                  firstDate: widget.date,
+                  lastDate: widget.date.add(const Duration(days: 365 * 2)),
+                );
+                if (picked != null) {
+                  setState(() => _endDate = picked);
+                }
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getRepeatText() {
+    switch (_repeatOption) {
+      case RepeatOption.noRepeat:
+        return "Don't repeat";
+      case RepeatOption.daily:
+        return 'Every 1 day';
+      case RepeatOption.weekly:
+        return 'Every 1 week';
+      case RepeatOption.monthly:
+        return 'Every 1 month';
+      case RepeatOption.yearly:
+        return 'Every 1 year';
+    }
+  }
+
+  void _showRepeatDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Repeat'),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final opt in RepeatOption.values)
+              RadioListTile<RepeatOption>(
+                value: opt,
+                groupValue: _repeatOption,
+                onChanged: (value) {
+                  setState(() => _repeatOption = value!);
+                  Navigator.of(context).pop();
+                },
+                title: Text({
+                      RepeatOption.noRepeat: "Don't repeat",
+                      RepeatOption.daily: 'Every 1 day',
+                      RepeatOption.weekly: 'Every 1 week',
+                      RepeatOption.monthly: 'Every 1 month',
+                      RepeatOption.yearly: 'Every 1 year',
+                    }[opt]!),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void saveEvent() {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_end.hour * 60 + _end.minute <= _start.hour * 60 + _start.minute) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time must be after the start time.')),
+      );
+      return;
+    }
+
+    final state = context.read<FamilyCalState>();
+    
+    // Find or create place
+    FamilyPlace? existingPlace;
+    for (final place in state.places) {
+      if (place.name.toLowerCase() == _placeController.text.trim().toLowerCase()) {
+        existingPlace = place;
+        break;
+      }
+    }
+    
+    final placeId = existingPlace?.id ?? 'place-${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Create place if it doesn't exist
+    if (existingPlace == null) {
+      final newPlace = FamilyPlace(
+        id: placeId,
+        name: _placeController.text.trim(),
+        address: '',
+        radiusMeters: 150,
+      );
+      state.addPlace(newPlace);
+    }
+
+    // Calculate weekdays based on repeat option
+    Set<int> weekdays;
+    switch (_repeatOption) {
+      case RepeatOption.noRepeat:
+        weekdays = {widget.date.weekday};
+        break;
+      case RepeatOption.daily:
+        weekdays = {1, 2, 3, 4, 5, 6, 7};
+        break;
+      case RepeatOption.weekly:
+        weekdays = {widget.date.weekday};
+        break;
+      case RepeatOption.monthly:
+      case RepeatOption.yearly:
+        weekdays = {widget.date.weekday};
+        break;
+    }
+
+    final updatedEvent = RecurringEvent(
+      id: widget.event.id,
+      childId: _childId!,
+      placeId: placeId,
+      role: _role,
+      responsibleMemberId: _responsibleId?.isEmpty ?? true ? null : _responsibleId,
+      startTime: _start,
+      endTime: _end,
+      weekdays: weekdays,
+      startDate: widget.event.startDate,
+      endDate: _endDate,
+      title: _titleController.text.trim(),
+      notes: widget.event.notes,
+    );
+
+    widget.onSubmit(updatedEvent);
   }
 }
