@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'data/mock_data.dart';
-import 'screens/add_event_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
@@ -96,12 +95,6 @@ class _HomeShellState extends State<HomeShell> {
         selectedIcon: Icons.calendar_month,
         label: 'Calendar',
         page: const CalendarScreen(),
-      ),
-      _NavDestination(
-        icon: Icons.add_circle_outline,
-        selectedIcon: Icons.add_circle,
-        label: 'Add',
-        page: const AddEventScreen(),
       ),
       _NavDestination(
         icon: Icons.settings_outlined,
