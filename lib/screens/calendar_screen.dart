@@ -64,12 +64,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     viewMode: state.calendarViewMode,
                     onViewModeChanged: (mode) =>
                         context.read<FamilyCalState>().setCalendarViewMode(mode),
+                    onMonthLabelTap: () => _showMonthYearPicker(context, state),
                   ),
                   Expanded(
-                    child: _buildView(
-                      context: context,
-                      state: state,
-                      isCompact: compact,
+                    child: GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                        if (details.primaryVelocity != null) {
+                          if (details.primaryVelocity! < -500) {
+                            // Swipe left -> next month
+                            state.jumpMonth(1);
+                          } else if (details.primaryVelocity! > 500) {
+                            // Swipe right -> previous month
+                            state.jumpMonth(-1);
+                          }
+                        }
+                      },
+                      child: _buildView(
+                        context: context,
+                        state: state,
+                        isCompact: compact,
+                      ),
                     ),
                   ),
                 ],
@@ -392,6 +406,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(() => _showInlineQuickAdd = false);
     }
   }
+
+  void _showMonthYearPicker(BuildContext context, FamilyCalState state) async {
+    final currentMonth = state.visibleMonth;
+    
+    final picked = await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _MonthYearPickerSheet(
+        initialDate: currentMonth,
+      ),
+    );
+    
+    if (picked != null) {
+      state.setVisibleMonth(picked);
+      state.selectCalendarDay(DateTime(picked.year, picked.month, 1));
+    }
+  }
 }
 
 /* ───────────────────────── Header ───────────────────────── */
@@ -405,6 +439,7 @@ class _CalendarHeader extends StatelessWidget {
     required this.monthLabel,
     required this.viewMode,
     required this.onViewModeChanged,
+    required this.onMonthLabelTap,
   });
 
   final bool isCompact;
@@ -414,6 +449,7 @@ class _CalendarHeader extends StatelessWidget {
   final String monthLabel;
   final CalendarViewMode viewMode;
   final ValueChanged<CalendarViewMode> onViewModeChanged;
+  final VoidCallback onMonthLabelTap;
 
   @override
   Widget build(BuildContext context) {
@@ -442,11 +478,29 @@ class _CalendarHeader extends StatelessWidget {
         ),
         Expanded(
           child: Semantics(
-            label: 'Current month $monthLabel',
-            child: Center(
-              child: Text(
-                monthLabel,
-                style: Theme.of(context).textTheme.titleLarge,
+            label: 'Current month $monthLabel, tap to select month and year',
+            button: true,
+            child: InkWell(
+              onTap: onMonthLabelTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        monthLabel,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -2030,5 +2084,121 @@ class _EditEventFormState extends State<_EditEventForm> {
     );
 
     widget.onSubmit(updatedEvent);
+  }
+}
+
+class _MonthYearPickerSheet extends StatefulWidget {
+  const _MonthYearPickerSheet({required this.initialDate});
+
+  final DateTime initialDate;
+
+  @override
+  State<_MonthYearPickerSheet> createState() => _MonthYearPickerSheetState();
+}
+
+class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
+  late int _selectedYear;
+  late int _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedYear = widget.initialDate.year;
+    _selectedMonth = widget.initialDate.month;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Year selector
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => setState(() => _selectedYear--),
+              ),
+              const SizedBox(width: 16),
+              InkWell(
+                onTap: () {
+                  // Allow direct year input or show year picker
+                },
+                child: Text(
+                  '$_selectedYear',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down,
+                color: theme.colorScheme.onSurface,
+              ),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => setState(() => _selectedYear++),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          // Month grid
+          GridView.count(
+            shrinkWrap: true,
+            crossAxisCount: 4,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 1.2,
+            children: List.generate(12, (index) {
+              final month = index + 1;
+              final monthName = DateFormat('MMM').format(DateTime(_selectedYear, month));
+              final isSelected = month == _selectedMonth && _selectedYear == widget.initialDate.year;
+              final isCurrentMonth = month == now.month && _selectedYear == now.year;
+              
+              return InkWell(
+                onTap: () {
+                  Navigator.of(context).pop(DateTime(_selectedYear, month));
+                },
+                borderRadius: BorderRadius.circular(50),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : Colors.transparent,
+                    border: isCurrentMonth && !isSelected
+                        ? Border.all(
+                            color: theme.colorScheme.primary,
+                            width: 2,
+                          )
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      monthName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: isSelected
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurface,
+                        fontWeight: isSelected || isCurrentMonth
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 }
