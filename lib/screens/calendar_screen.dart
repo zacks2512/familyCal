@@ -690,7 +690,7 @@ class _MonthCell extends StatelessWidget {
         : theme.dividerColor.withOpacity(0.4);
 
     final calendarState = context.read<FamilyCalState>();
-    const maxVisible = 1;
+    const maxVisible = 2;
     final visibleEvents = events.take(maxVisible).toList();
     final remainingCount =
         events.length > maxVisible ? events.length - maxVisible : 0;
@@ -732,15 +732,14 @@ class _MonthCell extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 2),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  margin: const EdgeInsets.only(right: 4),
-                                  decoration: BoxDecoration(
-                                    color: calendarState.childById(event.event.childId).color,
-                                    shape: BoxShape.circle,
-                                  ),
+                                Icon(
+                                  event.event.role == EventRole.dropOff 
+                                      ? Icons.arrow_downward 
+                                      : Icons.arrow_upward,
+                                  size: 8,
+                                  color: calendarState.childById(event.event.childId).color,
                                 ),
+                                const SizedBox(width: 2),
                                 Expanded(
                                   child: Text(
                                     event.event.title?.isNotEmpty == true
@@ -750,8 +749,10 @@ class _MonthCell extends StatelessWidget {
                                             .displayName,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelSmall
-                                        ?.copyWith(fontWeight: FontWeight.w500),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: calendarState.childById(event.event.childId).color,
+                                    ),
                                   ),
                                 ),
                               ],
