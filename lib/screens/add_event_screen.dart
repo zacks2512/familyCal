@@ -12,25 +12,38 @@ class AddEventScreen extends StatefulWidget {
   State<AddEventScreen> createState() => _AddEventScreenState();
 }
 
+/// Repeat options
+enum _RepeatOption { none, daily, weekly, weekdays, custom }
+
 class _AddEventScreenState extends State<AddEventScreen> {
   final formKey = GlobalKey<FormState>();
 
   String? selectedChildId;
-  String? selectedPlaceId;
   String? selectedResponsibleId;
   EventRole role = EventRole.dropOff;
-  final Set<int> weekdays = {DateTime.monday};
+
+  // Repeat UI state
+  _RepeatOption repeat = _RepeatOption.custom; // keep your previous behavior
+  final Set<int> weekdays = {DateTime.monday}; // Dart: 1=Mon..7=Sun
   DateTime startDate = DateUtils.dateOnly(DateTime.now());
   DateTime? endDate;
+  bool useEndDate = false;
+
+  // Time
   TimeOfDay startTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay endTime = const TimeOfDay(hour: 8, minute: 30);
-  bool useEndDate = false;
+
+  // Reminder & notes
   int reminderMinutes = 15;
   final noteController = TextEditingController();
+
+  // PLACE: free text (replaces dropdown)
+  final TextEditingController placeController = TextEditingController();
 
   @override
   void dispose() {
     noteController.dispose();
+    placeController.dispose();
     super.dispose();
   }
 
@@ -38,7 +51,6 @@ class _AddEventScreenState extends State<AddEventScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
     final children = state.children;
-    final places = state.places;
     final members = state.members;
 
     return Scaffold(
@@ -57,6 +69,8 @@ class _AddEventScreenState extends State<AddEventScreen> {
                   ),
             ),
             const SizedBox(height: 16),
+
+            /// CHILD
             DropdownButtonFormField<String>(
               value: selectedChildId,
               onChanged: (value) => setState(() => selectedChildId = value),
@@ -85,13 +99,12 @@ class _AddEventScreenState extends State<AddEventScreen> {
                 labelText: 'Child *',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.person_add_alt),
+                  tooltip: 'Add child',
                   onPressed: () async {
                     final newChild = await _showAddChildDialog(context);
-                    if (newChild != null) {
-                      if (context.mounted) {
-                        context.read<FamilyCalState>().addChild(newChild);
-                        setState(() => selectedChildId = newChild.id);
-                      }
+                    if (newChild != null && context.mounted) {
+                      context.read<FamilyCalState>().addChild(newChild);
+                      setState(() => selectedChildId = newChild.id);
                     }
                   },
                 ),
@@ -99,6 +112,8 @@ class _AddEventScreenState extends State<AddEventScreen> {
               validator: (value) => value == null ? 'Select a child' : null,
             ),
             const SizedBox(height: 16),
+
+            /// ROLE
             DropdownButtonFormField<EventRole>(
               value: role,
               items: EventRole.values
@@ -110,44 +125,33 @@ class _AddEventScreenState extends State<AddEventScreen> {
                   )
                   .toList(),
               onChanged: (value) => setState(() {
-                if (value != null) {
-                  role = value;
-                }
+                if (value != null) role = value;
               }),
               decoration: const InputDecoration(
                 labelText: 'Role *',
               ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedPlaceId,
-              onChanged: (value) => setState(() => selectedPlaceId = value),
-              items: places
-                  .map(
-                    (place) => DropdownMenuItem(
-                      value: place.id,
-                      child: Text('${place.name} (${place.radiusMeters}m)'),
-                    ),
-                  )
-                  .toList(),
+
+            /// PLACE (FREE TEXT)
+            TextFormField(
+              controller: placeController,
               decoration: InputDecoration(
                 labelText: 'Place *',
+                hintText: 'e.g., Kindergarten, Soccer field, Grandma',
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.add_location_alt_outlined),
-                  onPressed: () async {
-                    final place = await _showAddPlaceDialog(context);
-                    if (place != null) {
-                      if (context.mounted) {
-                        context.read<FamilyCalState>().addPlace(place);
-                        setState(() => selectedPlaceId = place.id);
-                      }
-                    }
-                  },
+                  icon: const Icon(Icons.cleaning_services_outlined),
+                  tooltip: 'Clear',
+                  onPressed: () => placeController.clear(),
                 ),
               ),
-              validator: (value) => value == null ? 'Select a place' : null,
+              textCapitalization: TextCapitalization.words,
+              validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? 'Enter a place' : null,
             ),
             const SizedBox(height: 16),
+
+            /// RESPONSIBLE
             DropdownButtonFormField<String>(
               value: selectedResponsibleId ?? state.currentMemberId,
               onChanged: (value) => setState(() => selectedResponsibleId = value),
@@ -162,28 +166,78 @@ class _AddEventScreenState extends State<AddEventScreen> {
               decoration: const InputDecoration(
                 labelText: 'Responsible adult *',
               ),
-              validator: (value) => value == null ? 'Select a responsible adult' : null,
+              validator: (value) =>
+                  value == null ? 'Select a responsible adult' : null,
             ),
             const SizedBox(height: 16),
-            _WeekdaySelector(
-              selectedWeekdays: weekdays,
+
+            /// REPEAT PRESET
+            DropdownButtonFormField<_RepeatOption>(
+              value: repeat,
+              decoration: const InputDecoration(labelText: 'Repeat'),
+              items: const [
+                DropdownMenuItem(
+                  value: _RepeatOption.none,
+                  child: Text('Does not repeat'),
+                ),
+                DropdownMenuItem(
+                  value: _RepeatOption.daily,
+                  child: Text('Every day'),
+                ),
+                DropdownMenuItem(
+                  value: _RepeatOption.weekly,
+                  child: Text('Every week'),
+                ),
+                DropdownMenuItem(
+                  value: _RepeatOption.weekdays,
+                  child: Text('Weekdays (Sun–Thu)'),
+                ),
+                DropdownMenuItem(
+                  value: _RepeatOption.custom,
+                  child: Text('Custom…'),
+                ),
+              ],
               onChanged: (value) => setState(() {
-                if (weekdays.contains(value)) {
-                  weekdays.remove(value);
-                } else {
-                  weekdays.add(value);
+                repeat = value ?? _RepeatOption.custom;
+                if (repeat != _RepeatOption.custom) {
+                  // Auto-manage weekdays based on preset
+                  weekdays
+                    ..clear()
+                    ..addAll(_weekdaySetForOption(repeat, startDate));
                 }
+                // End date toggle suggestion
+                useEndDate = repeat != _RepeatOption.none ? useEndDate : false;
+                if (!useEndDate) endDate = null;
               }),
             ),
-            if (weekdays.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Pick at least one weekday.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+
+            /// CUSTOM WEEKDAYS (Sunday-first letters)
+            if (repeat == _RepeatOption.custom) ...[
+              const SizedBox(height: 12),
+              _WeekdaySelectorSundayFirst(
+                selectedWeekdays: weekdays,
+                onChanged: (day) => setState(() {
+                  if (weekdays.contains(day)) {
+                    weekdays.remove(day);
+                  } else {
+                    weekdays.add(day);
+                  }
+                }),
               ),
+              if (weekdays.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Pick at least one weekday.',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+            ],
+
             const SizedBox(height: 24),
+
+            /// TIME
             Row(
               children: [
                 Expanded(
@@ -195,9 +249,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
                         context: context,
                         initialTime: startTime,
                       );
-                      if (picked != null) {
-                        setState(() => startTime = picked);
-                      }
+                      if (picked != null) setState(() => startTime = picked);
                     },
                   ),
                 ),
@@ -211,15 +263,15 @@ class _AddEventScreenState extends State<AddEventScreen> {
                         context: context,
                         initialTime: endTime,
                       );
-                      if (picked != null) {
-                        setState(() => endTime = picked);
-                      }
+                      if (picked != null) setState(() => endTime = picked);
                     },
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
+
+            /// START DATE
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Starts on'),
@@ -230,25 +282,32 @@ class _AddEventScreenState extends State<AddEventScreen> {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: startDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (picked != null) {
-                    setState(() => startDate = picked);
+                    setState(() {
+                      startDate = DateUtils.dateOnly(picked);
+                      // If weekly preset, keep only anchor day
+                      if (repeat == _RepeatOption.weekly) {
+                        weekdays
+                          ..clear()
+                          ..add(startDate.weekday);
+                      }
+                    });
                   }
                 },
               ),
             ),
+
+            /// END DATE
             SwitchListTile(
               title: const Text('Specify end date'),
               value: useEndDate,
               onChanged: (value) => setState(() {
                 useEndDate = value;
-                if (!useEndDate) {
-                  endDate = null;
-                } else {
-                  endDate = startDate.add(const Duration(days: 60));
-                }
+                endDate = value ? startDate.add(const Duration(days: 60)) : null;
               }),
             ),
             if (useEndDate)
@@ -265,20 +324,20 @@ class _AddEventScreenState extends State<AddEventScreen> {
                       context: context,
                       initialDate: endDate ?? startDate,
                       firstDate: startDate,
-                      lastDate: startDate.add(const Duration(days: 365)),
+                      lastDate: startDate.add(const Duration(days: 365 * 5)),
                     );
                     if (picked != null) {
-                      setState(() => endDate = picked);
+                      setState(() => endDate = DateUtils.dateOnly(picked));
                     }
                   },
                 ),
               ),
+
+            /// REMINDER
             DropdownButtonFormField<int>(
               value: reminderMinutes,
               onChanged: (value) => setState(() {
-                if (value != null) {
-                  reminderMinutes = value;
-                }
+                if (value != null) reminderMinutes = value;
               }),
               decoration: const InputDecoration(labelText: 'Reminder lead time'),
               items: const [
@@ -289,6 +348,8 @@ class _AddEventScreenState extends State<AddEventScreen> {
               ],
             ),
             const SizedBox(height: 16),
+
+            /// NOTES
             TextFormField(
               controller: noteController,
               decoration: const InputDecoration(
@@ -304,11 +365,19 @@ class _AddEventScreenState extends State<AddEventScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         child: FilledButton.icon(
           icon: const Icon(Icons.save),
+          label: const Text('Save event'),
           onPressed: () {
             final isValid = formKey.currentState?.validate() ?? false;
-            if (!isValid || weekdays.isEmpty) {
+
+            if (!isValid) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Fill required fields to continue.')),
+              );
+              return;
+            }
+            if (repeat == _RepeatOption.custom && weekdays.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Pick at least one weekday.')),
               );
               return;
             }
@@ -318,21 +387,41 @@ class _AddEventScreenState extends State<AddEventScreen> {
               );
               return;
             }
+
+            final state = context.read<FamilyCalState>();
+
+            // Resolve or create place by free text
+            final placeId = _ensurePlaceIdFromText(state, placeController.text);
+
+            // Compute weekdays for presets
+            final Set<int> chosenWeekdays = (repeat == _RepeatOption.custom)
+                ? Set.of(weekdays)
+                : _weekdaySetForOption(repeat, startDate);
+
+            // If does not repeat -> endDate equals startDate
+            final DateTime? finalEndDate =
+                (repeat == _RepeatOption.none) ? startDate : (useEndDate ? endDate : null);
+
             final event = RecurringEvent(
               id: 'event-${DateTime.now().millisecondsSinceEpoch}',
               childId: selectedChildId!,
-              placeId: selectedPlaceId!,
+              placeId: placeId,
               role: role,
-              responsibleMemberId: selectedResponsibleId ?? state.currentMemberId,
+              responsibleMemberId:
+                  selectedResponsibleId ?? state.currentMemberId,
               startTime: startTime,
               endTime: endTime,
-              weekdays: Set.of(weekdays),
+              weekdays: chosenWeekdays,
               startDate: startDate,
-              endDate: useEndDate ? endDate : null,
-              notes: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+              endDate: finalEndDate,
+              notes: noteController.text.trim().isEmpty
+                  ? null
+                  : noteController.text.trim(),
               reminderMinutes: [reminderMinutes],
             );
-            context.read<FamilyCalState>().addEvent(event);
+
+            state.addEvent(event);
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -341,27 +430,79 @@ class _AddEventScreenState extends State<AddEventScreen> {
             );
             _resetForm();
           },
-          label: const Text('Save event'),
         ),
       ),
     );
   }
 
+  /// Map repeat option to weekday set (Dart: 1=Mon..7=Sun)
+  Set<int> _weekdaySetForOption(_RepeatOption opt, DateTime anchor) {
+    switch (opt) {
+      case _RepeatOption.none:
+        return {anchor.weekday};
+      case _RepeatOption.daily:
+        return {1, 2, 3, 4, 5, 6, 7};
+      case _RepeatOption.weekly:
+        return {anchor.weekday};
+      case _RepeatOption.weekdays:
+        // Israel-style weekdays: Sun–Thu (Sun is 7 in Dart)
+        return {7, 1, 2, 3, 4};
+      case _RepeatOption.custom:
+        return weekdays.isEmpty ? {anchor.weekday} : Set.of(weekdays);
+    }
+  }
+
+  /// Create or reuse a FamilyPlace by name; returns its id.
+  String _ensurePlaceIdFromText(FamilyCalState state, String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      // Fallback default place
+      final fallback = FamilyPlace(
+        id: 'place-${DateTime.now().millisecondsSinceEpoch}',
+        name: 'General',
+        address: '',
+        radiusMeters: 150,
+      );
+      state.addPlace(fallback);
+      return fallback.id;
+    }
+    // Try to reuse existing (case-insensitive match on name)
+    for (final p in state.places) {
+      if (p.name.toLowerCase() == trimmed.toLowerCase()) {
+        return p.id;
+      }
+    }
+    // Create new place
+    final created = FamilyPlace(
+      id: 'place-${DateTime.now().millisecondsSinceEpoch}',
+      name: trimmed,
+      address: '',
+      radiusMeters: 150,
+    );
+    state.addPlace(created);
+    return created.id;
+  }
+
   void _resetForm() {
     setState(() {
       selectedChildId = null;
-      selectedPlaceId = null;
       selectedResponsibleId = null;
       role = EventRole.dropOff;
-      weekdays.clear();
-      weekdays.add(DateTime.monday);
+
+      repeat = _RepeatOption.custom;
+      weekdays
+        ..clear()
+        ..add(DateTime.monday);
       startDate = DateUtils.dateOnly(DateTime.now());
       endDate = null;
       useEndDate = false;
+
       startTime = const TimeOfDay(hour: 8, minute: 0);
       endTime = const TimeOfDay(hour: 8, minute: 30);
+
       reminderMinutes = 15;
       noteController.clear();
+      placeController.clear();
     });
   }
 
@@ -412,9 +553,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
                 ),
                 FilledButton(
                   onPressed: () {
-                    if (nameController.text.trim().isEmpty) {
-                      return;
-                    }
+                    if (nameController.text.trim().isEmpty) return;
                     Navigator.of(dialogContext).pop(
                       FamilyChild(
                         id: 'child-${DateTime.now().millisecondsSinceEpoch}',
@@ -432,109 +571,36 @@ class _AddEventScreenState extends State<AddEventScreen> {
       },
     );
   }
-
-  Future<FamilyPlace?> _showAddPlaceDialog(BuildContext context) async {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    return showDialog<FamilyPlace>(
-      context: context,
-      builder: (dialogContext) {
-        int radius = 150;
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: const Text('Add place'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                  ),
-                  TextField(
-                    controller: addressController,
-                    decoration: const InputDecoration(labelText: 'Address'),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Text('Radius'),
-                      Expanded(
-                        child: Slider(
-                          value: radius.toDouble(),
-                          min: 50,
-                          max: 250,
-                          divisions: 8,
-                          label: '$radius m',
-                          onChanged: (value) =>
-                              setStateDialog(() => radius = value.round()),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (nameController.text.trim().isEmpty) {
-                      return;
-                    }
-                    Navigator.of(dialogContext).pop(
-                      FamilyPlace(
-                        id: 'place-${DateTime.now().millisecondsSinceEpoch}',
-                        name: nameController.text.trim(),
-                        address: addressController.text.trim(),
-                        radiusMeters: radius,
-                      ),
-                    );
-                  },
-                  child: const Text('Add place'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 }
 
-class _WeekdaySelector extends StatelessWidget {
-  const _WeekdaySelector({
+/// Sunday-first weekday selector with single letters: S M T W T F S
+class _WeekdaySelectorSundayFirst extends StatelessWidget {
+  const _WeekdaySelectorSundayFirst({
     required this.selectedWeekdays,
     required this.onChanged,
   });
 
-  final Set<int> selectedWeekdays;
+  final Set<int> selectedWeekdays; // Dart 1=Mon..7=Sun
   final ValueChanged<int> onChanged;
+
+  static const _labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Sun..Sat
 
   @override
   Widget build(BuildContext context) {
-    const days = [
-      DateTime.monday,
-      DateTime.tuesday,
-      DateTime.wednesday,
-      DateTime.thursday,
-      DateTime.friday,
-      DateTime.saturday,
-      DateTime.sunday,
-    ];
+    // Map Sunday-first to Dart weekdays: Sun=7, Mon=1, Tue=2, ..., Sat=6
+    final dartWeekdays = const [7, 1, 2, 3, 4, 5, 6];
 
     return Wrap(
       spacing: 8,
-      children: [
-        for (final day in days)
-          ChoiceChip(
-            label: Text(DateFormat('EEE').format(DateTime(2024, 1, day))),
-            selected: selectedWeekdays.contains(day),
-            onSelected: (_) => onChanged(day),
-          ),
-      ],
+      children: List.generate(7, (i) {
+        final day = dartWeekdays[i];
+        final selected = selectedWeekdays.contains(day);
+        return ChoiceChip(
+          label: Text(_labels[i]),
+          selected: selected,
+          onSelected: (_) => onChanged(day),
+        );
+      }),
     );
   }
 }

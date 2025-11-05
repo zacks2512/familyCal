@@ -23,7 +23,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   TimeOfDay? _quickAddEnd;
   EventRole? _quickAddRole;
   String? _quickAddChildId;
-  String? _quickAddPlaceId;
   String? _quickAddResponsibleId;
 
   @override
@@ -279,19 +278,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: kMaxFormWidth),
-                        child: _QuickAddForm(
-                          titleController: _titleController,
-                          initialStart: _quickAddStart!,
-                          initialEnd: _quickAddEnd!,
-                          initialRole: _quickAddRole!,
-                          date: context.read<FamilyCalState>().selectedCalendarDay,
-                          childId: _quickAddChildId,
-                          placeId: _quickAddPlaceId,
-                          responsibleId: _quickAddResponsibleId,
-                          onSubmit: (event) {
-                            _submitQuickAdd(context, state, event, closeSheet: true);
-                          },
-                        ),
+                         child: _QuickAddForm(
+                           titleController: _titleController,
+                           initialStart: _quickAddStart!,
+                           initialEnd: _quickAddEnd!,
+                           initialRole: _quickAddRole!,
+                           date: context.read<FamilyCalState>().selectedCalendarDay,
+                           childId: _quickAddChildId,
+                           responsibleId: _quickAddResponsibleId,
+                           onSubmit: (event) {
+                             _submitQuickAdd(context, state, event, closeSheet: true);
+                           },
+                         ),
                       ),
                     ),
                   );
@@ -323,7 +321,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
     _quickAddRole = EventRole.dropOff;
     _quickAddChildId = state.children.isNotEmpty ? state.children.first.id : null;
-    _quickAddPlaceId = state.places.isNotEmpty ? state.places.first.id : null;
     _quickAddResponsibleId = state.currentMemberId;
   }
 
@@ -333,27 +330,47 @@ class _CalendarScreenState extends State<CalendarScreen> {
     QuickAddEvent event, {
     bool closeSheet = false,
   }) {
+    // Find or create place
+    FamilyPlace? existingPlace;
+    for (final place in state.places) {
+      if (place.name.toLowerCase() == event.placeName.toLowerCase()) {
+        existingPlace = place;
+        break;
+      }
+    }
+    
+    final placeId = existingPlace?.id ?? 'place-${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Create place if it doesn't exist
+    if (existingPlace == null) {
+      final newPlace = FamilyPlace(
+        id: placeId,
+        name: event.placeName,
+        address: '',
+        radiusMeters: 150,
+      );
+      state.addPlace(newPlace);
+    }
+
     final newEvent = RecurringEvent(
       id: 'event-${DateTime.now().millisecondsSinceEpoch}',
       childId: event.childId,
-      placeId: event.placeId,
+      placeId: placeId,
       role: event.role,
       responsibleMemberId: event.responsibleMemberId?.isEmpty ?? true
           ? null
           : event.responsibleMemberId,
       startTime: event.start,
       endTime: event.end,
-      weekdays: {event.date.weekday},
+      weekdays: event.repeatWeekdays ?? {event.date.weekday},
       startDate: DateUtils.dateOnly(event.date),
-      endDate: DateUtils.dateOnly(event.date),
+      endDate: event.endDate != null ? DateUtils.dateOnly(event.endDate!) : null,
       title: event.title,
     );
     state.addEvent(newEvent);
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content:
-            Text('Added ${event.title} on ${DateFormat.yMMMd().format(event.date)}'),
-      ),
+      SnackBar(content: Text('Added ${event.title}')),
     );
     if (closeSheet) {
       Navigator.of(context).maybePop();
@@ -1157,8 +1174,10 @@ class QuickAddEvent {
     required this.role,
     required this.date,
     required this.childId,
-    required this.placeId,
+    required this.placeName,
     this.responsibleMemberId,
+    this.repeatWeekdays,
+    this.endDate,
   });
 
   final String title;
@@ -1167,8 +1186,10 @@ class QuickAddEvent {
   final EventRole role;
   final DateTime date;
   final String childId;
-  final String placeId;
+  final String placeName;
   final String? responsibleMemberId;
+  final Set<int>? repeatWeekdays;
+  final DateTime? endDate;
 }
 
 class _QuickAddForm extends StatefulWidget {
@@ -1181,7 +1202,6 @@ class _QuickAddForm extends StatefulWidget {
         initialEnd = null,
         initialRole = null,
         childId = null,
-        placeId = null,
         responsibleId = null;
 
   const _QuickAddForm({
@@ -1191,7 +1211,6 @@ class _QuickAddForm extends StatefulWidget {
     required this.initialRole,
     required this.date,
     required this.childId,
-    required this.placeId,
     required this.responsibleId,
     required this.onSubmit,
   }) : onClose = null;
@@ -1202,7 +1221,6 @@ class _QuickAddForm extends StatefulWidget {
   final EventRole? initialRole;
   final DateTime date;
   final String? childId;
-  final String? placeId;
   final String? responsibleId;
   final ValueChanged<QuickAddEvent> onSubmit;
   final VoidCallback? onClose;
@@ -1211,26 +1229,36 @@ class _QuickAddForm extends StatefulWidget {
   State<_QuickAddForm> createState() => _QuickAddFormState();
 }
 
+enum RepeatOption {
+  noRepeat,
+  daily,
+  weekly,
+  monthly,
+  yearly,
+}
+
 class _QuickAddFormState extends State<_QuickAddForm> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
+  late TextEditingController _placeController;
   late TimeOfDay _start;
   late TimeOfDay _end;
   late EventRole _role;
   late String? _childId;
-  late String? _placeId;
   late String? _responsibleId;
+  RepeatOption _repeatOption = RepeatOption.noRepeat;
+  DateTime? _endDate;
 
   @override
   void initState() {
     super.initState();
     final state = context.read<FamilyCalState>();
     _titleController = widget.titleController ?? TextEditingController(text: '');
+    _placeController = TextEditingController();
     _start = widget.initialStart ?? const TimeOfDay(hour: 8, minute: 0);
     _end = widget.initialEnd ?? TimeOfDay(hour: (_start.hour + 1) % 24, minute: _start.minute);
     _role = widget.initialRole ?? EventRole.dropOff;
     _childId = widget.childId ?? (state.children.isNotEmpty ? state.children.first.id : null);
-    _placeId = widget.placeId ?? (state.places.isNotEmpty ? state.places.first.id : null);
     _responsibleId = widget.responsibleId ?? state.currentMemberId;
   }
 
@@ -1239,17 +1267,18 @@ class _QuickAddFormState extends State<_QuickAddForm> {
     if (widget.titleController == null) {
       _titleController.dispose();
     }
+    _placeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
-    if (state.children.isEmpty || state.places.isEmpty) {
+    if (state.children.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
-          'Add at least one child and place before scheduling events.',
+          'Add at least one child before scheduling events.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -1295,14 +1324,13 @@ class _QuickAddFormState extends State<_QuickAddForm> {
             validator: (value) => value == null ? 'Select a child' : null,
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _placeId,
-            decoration: const InputDecoration(labelText: 'Place'),
-            items: state.places
-                .map((place) => DropdownMenuItem(value: place.id, child: Text(place.name)))
-                .toList(),
-            onChanged: (value) => setState(() => _placeId = value),
-            validator: (value) => value == null ? 'Select a place' : null,
+          TextFormField(
+            controller: _placeController,
+            decoration: const InputDecoration(
+              labelText: 'Place',
+              hintText: 'School, gym, home, etc.',
+            ),
+            validator: (value) => value == null || value.trim().isEmpty ? 'Enter a place' : null,
           ),
           const SizedBox(height: 12),
           SegmentedButton<EventRole>(
@@ -1321,6 +1349,42 @@ class _QuickAddFormState extends State<_QuickAddForm> {
             onChanged: (value) => setState(() => _responsibleId = value),
           ),
           const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.repeat),
+            title: const Text('Repeat'),
+            subtitle: Text(_getRepeatText()),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showRepeatDialog(context),
+          ),
+          if (_repeatOption != RepeatOption.noRepeat) ...[
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Text(_endDate == null
+                  ? 'Repeat until... (optional)'
+                  : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
+              trailing: _endDate != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() => _endDate = null),
+                    )
+                  : null,
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _endDate ?? widget.date.add(const Duration(days: 90)),
+                  firstDate: widget.date,
+                  lastDate: widget.date.add(const Duration(days: 365 * 2)),
+                );
+                if (picked != null) {
+                  setState(() => _endDate = picked);
+                }
+              },
+            ),
+          ],
+          const SizedBox(height: 16),
           Row(
             children: [
               if (widget.onClose != null)
@@ -1335,6 +1399,25 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                     );
                     return;
                   }
+                  
+                  // Calculate weekdays based on repeat option
+                  Set<int>? weekdays;
+                  switch (_repeatOption) {
+                    case RepeatOption.noRepeat:
+                      weekdays = {widget.date.weekday};
+                      break;
+                    case RepeatOption.daily:
+                      weekdays = {1, 2, 3, 4, 5, 6, 7};
+                      break;
+                    case RepeatOption.weekly:
+                      weekdays = {widget.date.weekday};
+                      break;
+                    case RepeatOption.monthly:
+                    case RepeatOption.yearly:
+                      weekdays = {widget.date.weekday};
+                      break;
+                  }
+                  
                   widget.onSubmit(
                     QuickAddEvent(
                       title: _titleController.text.trim(),
@@ -1343,8 +1426,10 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                       role: _role,
                       date: widget.date,
                       childId: _childId!,
-                      placeId: _placeId!,
+                      placeName: _placeController.text.trim(),
                       responsibleMemberId: _responsibleId,
+                      repeatWeekdays: weekdays,
+                      endDate: _endDate,
                     ),
                   );
                 },
@@ -1353,6 +1438,81 @@ class _QuickAddFormState extends State<_QuickAddForm> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  String _getRepeatText() {
+    switch (_repeatOption) {
+      case RepeatOption.noRepeat:
+        return "Don't repeat";
+      case RepeatOption.daily:
+        return 'Every 1 day';
+      case RepeatOption.weekly:
+        return 'Every 1 week';
+      case RepeatOption.monthly:
+        return 'Every 1 month';
+      case RepeatOption.yearly:
+        return 'Every 1 year';
+    }
+  }
+
+  void _showRepeatDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Repeat'),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<RepeatOption>(
+              value: RepeatOption.noRepeat,
+              groupValue: _repeatOption,
+              onChanged: (value) {
+                setState(() => _repeatOption = value!);
+                Navigator.of(context).pop();
+              },
+              title: const Text("Don't repeat"),
+            ),
+            RadioListTile<RepeatOption>(
+              value: RepeatOption.daily,
+              groupValue: _repeatOption,
+              onChanged: (value) {
+                setState(() => _repeatOption = value!);
+                Navigator.of(context).pop();
+              },
+              title: const Text('Every 1 day'),
+            ),
+            RadioListTile<RepeatOption>(
+              value: RepeatOption.weekly,
+              groupValue: _repeatOption,
+              onChanged: (value) {
+                setState(() => _repeatOption = value!);
+                Navigator.of(context).pop();
+              },
+              title: const Text('Every 1 week'),
+            ),
+            RadioListTile<RepeatOption>(
+              value: RepeatOption.monthly,
+              groupValue: _repeatOption,
+              onChanged: (value) {
+                setState(() => _repeatOption = value!);
+                Navigator.of(context).pop();
+              },
+              title: const Text('Every 1 month'),
+            ),
+            RadioListTile<RepeatOption>(
+              value: RepeatOption.yearly,
+              groupValue: _repeatOption,
+              onChanged: (value) {
+                setState(() => _repeatOption = value!);
+                Navigator.of(context).pop();
+              },
+              title: const Text('Every 1 year'),
+            ),
+          ],
+        ),
       ),
     );
   }
