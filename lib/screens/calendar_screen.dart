@@ -477,7 +477,6 @@ class _CalendarHeader extends StatelessWidget {
 }
 
 /* ───────────────────────── Month View ───────────────────────── */
-
 class _MonthView extends StatelessWidget {
   const _MonthView({
     required this.isCompact,
@@ -497,12 +496,15 @@ class _MonthView extends StatelessWidget {
   final VoidCallback onOpenDetail;
   final Widget dayDrawer;
 
+  static const _weekdayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
   @override
   Widget build(BuildContext context) {
-    final days = _buildDays(visibleMonth);
+    final days = _buildDaysSundayStart(visibleMonth);
     final state = context.read<FamilyCalState>();
 
     if (isCompact) {
+      // Fill available height; 7x(5|6) grid
       return LayoutBuilder(
         builder: (context, c) {
           final rows = (days.length / 7).ceil();
@@ -510,37 +512,42 @@ class _MonthView extends StatelessWidget {
           const horizontalPadding = 8.0 * 2;
 
           final cellWidth = (c.maxWidth - horizontalPadding) / cols;
-          final cellHeight = c.maxHeight / rows;
+          final cellHeight = (c.maxHeight /* includes header */ - _weekdayHeaderHeight(context)) / rows;
           final aspect = cellWidth / cellHeight;
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                childAspectRatio: aspect,
-              ),
-              itemCount: days.length,
-              itemBuilder: (context, index) {
-                final day = days[index];
-                final events = instancesForDay(day);
-                final isSelected = DateUtils.isSameDay(day, selectedDay);
-                final inMonth = DateUtils.isSameMonth(day, visibleMonth);
-                final hasWarning = events.any(
-                  (event) =>
-                      state.memberByIdOrNull(event.event.responsibleMemberId) ==
-                      null,
-                );
-                return _MonthCell(
-                  day: day,
-                  isSelected: isSelected,
-                  inMonth: inMonth,
-                  events: events,
-                  hasWarning: hasWarning,
-                  onTap: () => onSelectDay(day),
-                );
-              },
+            child: Column(
+              children: [
+                _weekdayHeader(context),
+                Expanded(
+                  child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: cols,
+                      childAspectRatio: aspect,
+                    ),
+                    itemCount: days.length,
+                    itemBuilder: (context, index) {
+                      final day = days[index];
+                      final events = instancesForDay(day);
+                      final isSelected = DateUtils.isSameDay(day, selectedDay);
+                      final inMonth = DateUtils.isSameMonth(day, visibleMonth);
+                      final hasWarning = events.any(
+                        (event) => state.memberByIdOrNull(event.event.responsibleMemberId) == null,
+                      );
+                      return _MonthCell(
+                        day: day,
+                        isSelected: isSelected,
+                        inMonth: inMonth,
+                        events: events,
+                        hasWarning: hasWarning,
+                        onTap: () => onSelectDay(day),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -554,6 +561,7 @@ class _MonthView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _weekdayHeader(context),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -568,9 +576,7 @@ class _MonthView extends StatelessWidget {
                 final isSelected = DateUtils.isSameDay(day, selectedDay);
                 final inMonth = DateUtils.isSameMonth(day, visibleMonth);
                 final hasWarning = events.any(
-                  (event) =>
-                      state.memberByIdOrNull(event.event.responsibleMemberId) ==
-                      null,
+                  (event) => state.memberByIdOrNull(event.event.responsibleMemberId) == null,
                 );
                 return _MonthCell(
                   day: day,
@@ -594,23 +600,50 @@ class _MonthView extends StatelessWidget {
     );
   }
 
-  List<DateTime> _buildDays(DateTime month) {
+  /// Sunday-start month grid builder
+  List<DateTime> _buildDaysSundayStart(DateTime month) {
     final firstOfMonth = DateTime(month.year, month.month, 1);
-    final firstWeekday = firstOfMonth.weekday;
-    final daysBefore = (firstWeekday + 6) % 7;
-    final start = firstOfMonth.subtract(Duration(days: daysBefore));
+    // Map Sunday=7 to 0, Mon=1..Sat=6 -> 1..6
+    final firstIdx = firstOfMonth.weekday % 7; // 0..6 where 0 is Sunday
+    final start = firstOfMonth.subtract(Duration(days: firstIdx));
 
     final lastOfMonth = DateTime(month.year, month.month + 1, 0);
-    final daysAfter = (7 - lastOfMonth.weekday) % 7;
+    final lastIdx = lastOfMonth.weekday % 7; // 0..6 where 0 is Sunday
+    final daysAfter = 6 - lastIdx; // fill to Saturday
     final end = lastOfMonth.add(Duration(days: daysAfter));
 
     final total = end.difference(start).inDays + 1;
-    return List.generate(
-      total,
-      (index) => DateTime(start.year, start.month, start.day + index),
+    return List.generate(total, (i) => DateTime(start.year, start.month, start.day + i));
+  }
+
+  /// Header row: S M T W T F S
+  Widget _weekdayHeader(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          letterSpacing: 0.25,
+        );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4, top: 6),
+      child: Row(
+        children: List.generate(
+          7,
+          (i) => Expanded(
+            child: Center(
+              child: Text(_weekdayLetters[i], style: style),
+            ),
+          ),
+        ),
+      ),
     );
   }
+
+  double _weekdayHeaderHeight(BuildContext context) {
+    final base = (Theme.of(context).textTheme.labelLarge?.fontSize ?? 14) * 1.6;
+    return base + 12; // text height + padding
+  }
 }
+
 
 class _MonthCell extends StatelessWidget {
   const _MonthCell({
