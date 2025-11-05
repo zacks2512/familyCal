@@ -169,10 +169,15 @@ class _LogScreenState extends State<LogScreen> {
                             Row(
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: child.color,
+                                  backgroundColor: child.color.withOpacity(0.25),
                                   child: Text(
                                     child.displayName.substring(0, 1),
-                                    style: const TextStyle(color: Colors.white),
+                                    style: TextStyle(
+                                      color: child.color.computeLuminance() > 0.5
+                                          ? Colors.black
+                                          : Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),

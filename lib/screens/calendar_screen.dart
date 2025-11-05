@@ -331,23 +331,41 @@ class _CalendarScreenState extends State<CalendarScreen> {
     QuickAddEvent event, {
     bool closeSheet = false,
   }) {
-    // free-text place: create or reuse
-    FamilyPlace? existingPlace;
-    for (final place in state.places) {
-      if (place.name.toLowerCase() == event.placeName.toLowerCase()) {
-        existingPlace = place;
-        break;
+    // Handle place (optional) - create or reuse if provided
+    String placeId;
+    if (event.placeName.trim().isEmpty) {
+      // Use default/first place if no place specified
+      if (state.places.isEmpty) {
+        // Create a default "Home" place if none exist
+        placeId = 'place-default-${DateTime.now().millisecondsSinceEpoch}';
+        state.addPlace(FamilyPlace(
+          id: placeId,
+          name: 'Home',
+          address: '',
+          radiusMeters: 150,
+        ));
+      } else {
+        placeId = state.places.first.id;
       }
-    }
-    final placeId = existingPlace?.id ??
-        'place-${DateTime.now().millisecondsSinceEpoch}';
-    if (existingPlace == null) {
-      state.addPlace(FamilyPlace(
-        id: placeId,
-        name: event.placeName,
-        address: '',
-        radiusMeters: 150,
-      ));
+    } else {
+      // Find or create place with given name
+      FamilyPlace? existingPlace;
+      for (final place in state.places) {
+        if (place.name.toLowerCase() == event.placeName.toLowerCase()) {
+          existingPlace = place;
+          break;
+        }
+      }
+      placeId = existingPlace?.id ??
+          'place-${DateTime.now().millisecondsSinceEpoch}';
+      if (existingPlace == null) {
+        state.addPlace(FamilyPlace(
+          id: placeId,
+          name: event.placeName,
+          address: '',
+          radiusMeters: 150,
+        ));
+      }
     }
 
     final newEvent = RecurringEvent(
@@ -1446,7 +1464,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
     _role = widget.initialRole ?? EventRole.dropOff;
     _childId =
         widget.childId ?? (state.children.isNotEmpty ? state.children.first.id : null);
-    _responsibleId = widget.responsibleId ?? state.currentMemberId;
+    _responsibleId = widget.responsibleId;
   }
 
   @override
@@ -1516,11 +1534,9 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           TextFormField(
             controller: _placeController,
             decoration: const InputDecoration(
-              labelText: 'Place',
+              labelText: 'Place (optional)',
               hintText: 'School, gym, home, etc.',
             ),
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Enter a place' : null,
           ),
           const SizedBox(height: 12),
           SegmentedButton<EventRole>(
@@ -1531,11 +1547,11 @@ class _QuickAddFormState extends State<_QuickAddForm> {
             onSelectionChanged: (value) => setState(() => _role = value.first),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          DropdownButtonFormField<String?>(
             value: _responsibleId,
             decoration: const InputDecoration(labelText: 'Assign to'),
             items: [
-              const DropdownMenuItem(value: '', child: Text('Unassigned')),
+              const DropdownMenuItem(value: null, child: Text('Unassigned')),
               ...state.members.map(
                   (m) => DropdownMenuItem(value: m.id, child: Text(m.displayName))),
             ],
@@ -1829,10 +1845,9 @@ class _EditEventFormState extends State<_EditEventForm> {
           TextFormField(
             controller: _placeController,
             decoration: const InputDecoration(
-              labelText: 'Place',
+              labelText: 'Place (optional)',
               hintText: 'School, gym, home, etc.',
             ),
-            validator: (value) => value == null || value.trim().isEmpty ? 'Enter a place' : null,
           ),
           const SizedBox(height: 12),
           SegmentedButton<EventRole>(
@@ -1841,11 +1856,11 @@ class _EditEventFormState extends State<_EditEventForm> {
             onSelectionChanged: (value) => setState(() => _role = value.first),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _responsibleId,
+          DropdownButtonFormField<String?>(
+            value: _responsibleId?.isEmpty ?? true ? null : _responsibleId,
             decoration: const InputDecoration(labelText: 'Assign to'),
             items: [
-              const DropdownMenuItem(value: '', child: Text('Unassigned')),
+              const DropdownMenuItem(value: null, child: Text('Unassigned')),
               ...state.members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.displayName))),
             ],
             onChanged: (value) => setState(() => _responsibleId = value),
@@ -1949,26 +1964,33 @@ class _EditEventFormState extends State<_EditEventForm> {
 
     final state = context.read<FamilyCalState>();
     
-    // Find or create place
-    FamilyPlace? existingPlace;
-    for (final place in state.places) {
-      if (place.name.toLowerCase() == _placeController.text.trim().toLowerCase()) {
-        existingPlace = place;
-        break;
+    // Handle place (optional)
+    String placeId;
+    if (_placeController.text.trim().isEmpty) {
+      // Keep existing place if no new place specified
+      placeId = widget.event.placeId;
+    } else {
+      // Find or create place
+      FamilyPlace? existingPlace;
+      for (final place in state.places) {
+        if (place.name.toLowerCase() == _placeController.text.trim().toLowerCase()) {
+          existingPlace = place;
+          break;
+        }
       }
-    }
-    
-    final placeId = existingPlace?.id ?? 'place-${DateTime.now().millisecondsSinceEpoch}';
-    
-    // Create place if it doesn't exist
-    if (existingPlace == null) {
-      final newPlace = FamilyPlace(
-        id: placeId,
-        name: _placeController.text.trim(),
-        address: '',
-        radiusMeters: 150,
-      );
-      state.addPlace(newPlace);
+      
+      placeId = existingPlace?.id ?? 'place-${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Create place if it doesn't exist
+      if (existingPlace == null) {
+        final newPlace = FamilyPlace(
+          id: placeId,
+          name: _placeController.text.trim(),
+          address: '',
+          radiusMeters: 150,
+        );
+        state.addPlace(newPlace);
+      }
     }
 
     // Calculate weekdays based on repeat option

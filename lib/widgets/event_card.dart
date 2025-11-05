@@ -84,11 +84,13 @@ class EventCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: color.withOpacity(0.2),
+                  backgroundColor: color.withOpacity(0.25),
                   child: Text(
                     child.displayName.substring(0, 1),
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: color,
+                      color: color.computeLuminance() > 0.5
+                          ? Colors.black
+                          : Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
