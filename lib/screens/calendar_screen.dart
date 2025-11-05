@@ -737,7 +737,7 @@ class _MonthCell extends StatelessWidget {
                                   height: 4,
                                   margin: const EdgeInsets.only(right: 4),
                                   decoration: BoxDecoration(
-                                    color: event.event.role.color,
+                                    color: calendarState.childById(event.event.childId).color,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -899,6 +899,7 @@ class _WeekDayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final state = context.read<FamilyCalState>();
 
     return Semantics(
       label:
@@ -945,7 +946,7 @@ class _WeekDayCard extends StatelessWidget {
                             style: TextStyle(fontSize: 12)))
                     : Row(
                         children: [
-                          _EventDot(color: events.first.event.role.color),
+                          _EventDot(color: state.childById(events.first.event.childId).color),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -1087,9 +1088,10 @@ class _DayEventTile extends StatelessWidget {
     final format = DateFormat('h:mm a');
     final start = format.format(instance.windowStart);
     final end = format.format(instance.windowEnd);
+    final child = state.childById(instance.event.childId);
     final title = instance.event.title?.isNotEmpty == true
         ? instance.event.title!
-        : '${state.childById(instance.event.childId).displayName} • ${instance.event.role.label}';
+        : '${child.displayName} • ${instance.event.role.label}';
     final responsible =
         state.memberByIdOrNull(instance.event.responsibleMemberId);
     final missingAssignment = responsible == null;
@@ -1102,7 +1104,7 @@ class _DayEventTile extends StatelessWidget {
           border: Border.all(
             color: missingAssignment
                 ? Theme.of(context).colorScheme.error
-                : instance.event.role.color.withOpacity(0.5),
+                : child.color.withOpacity(0.5),
           ),
           color:
               Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
