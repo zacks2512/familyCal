@@ -60,7 +60,7 @@
 
 ### US-02 Add Recurring Event with Role
 - As a user, I add a recurring **drop-off** for Mia at School, Mon–Fri **08:00–08:40**, responsible: Me.
-- **Accept:** Event instances render in Day; editing updates future instances; conflicting events for the same child warn.
+- **Accept:** Event instances render in Day/Week/Month views; editing updates future instances; conflicting events for the same child warn.
 
 ### US-03 Reminder & One-Tap Confirmation
 - As the responsible adult, I get a push at **T−15 min** and at window open; during the time window I tap **"Dropped off"** → biometric → success.
@@ -82,30 +82,28 @@
 
 ## 3) UX Spec (Condensed)
 
-**Navigation tabs:** Today | Calendar | Add (+) | Log | Settings
-
-**Today**
-- “Now / Next” cards by child
-- Big primary button: **Dropped off / Picked up** (enabled only during window; shows countdown)
-- Tiny chips: place, role icon (🍼 drop / 🚗 pickup)
+**Navigation tabs:** Calendar | Settings
 
 **Calendar**
-- **Day view** (default): vertical timeline with event cards (child color, role tag, place chip)
-- **Agenda view**: list for today/tomorrow with quick actions
+- **View modes:** Day | Week | Month (segmented button toggle)
+- **Header:** Month/Year label with navigation arrows, "Today" button
+- **Month view:** Grid calendar with event indicators
+- **Week view:** 7-day horizontal scroll with timeline
+- **Day view:** Vertical timeline with event cards (child color, role tag, place chip)
+- **Quick add:** Inline form appears on selected date
+  - Fields: Child, Place (free text), Role (drop/pickup), Time window, Responsible adult
+  - Days selection for recurring events
 - Tap event → details sheet with: Edit | Delete | Confirm (if in window)
-
-**Add (+)**
-- Quick sheet: Child, Place, Role, Days, Start–End, Responsible
-- Save as Template (optional); RRULE preview
-
-**Log**
-- Filters: child, place, month
-- List: "2025-10-21 08:12 • School • Dropped off • You"
-- Export PDF
+- Keyboard navigation: Arrow keys to change dates, 'n' for new event, 't' for today
 
 **Settings**
-- Family management, invites
-- Notifications toggles
+- **Children:** List with color avatars; Add child with name + color picker
+- **Family members:** List with owner badge; Add/Invite member with optional email/phone
+- **Activity Log** (navigates to separate screen):
+  - Filters: child dropdown, month dropdown
+  - List: cards showing "Child • Role • Date/Time • Place • Confirmed by"
+  - Export PDF and Share buttons in app bar
+- Notifications toggles (future)
 - Privacy copy
 
 **Microcopy examples**
@@ -288,11 +286,11 @@ _Deduplicate multi-device; respect quiet hours._
 
 ## 11) Acceptance Test Checklist
 - [ ] Create family, invite partner, both see same child/place  
-- [ ] Create recurring event; instances render in Day & Agenda  
+- [ ] Create recurring event; instances render in Day/Week/Month views  
 - [ ] Receive T−15 and T0 reminders; confirm within window → partner push  
 - [ ] Confirm outside window → blocked with error  
 - [ ] Offline confirm queues and syncs later  
-- [ ] Log filters by child; monthly PDF exports and opens  
+- [ ] Log filters by child and month; monthly PDF exports and opens  
 - [ ] Security rules: user cannot access other family's docs
 
 ---
@@ -310,7 +308,7 @@ _Deduplicate multi-device; respect quiet hours._
 **Sprint 1 (Infra + CRUD)**
 - Auth, family space, invite flow
 - Children & places CRUD (places as free text)
-- Day/Agenda calendar scaffolding
+- Day/Week/Month calendar views with inline quick add
 
 **Sprint 2 (Events)**
 - Event create/edit/delete + RRULE expansion service
