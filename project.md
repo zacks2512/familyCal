@@ -1,5 +1,5 @@
 # FAMILYCAL — MVP PRD (Agent-Ready)
-**One-liner:** A calendar-first family app that assigns roles to kid events ("drop-off / pick-up") and lets the responsible adult confirm **"Dropped off / Picked up"** with one tap (time-window + biometric), then pings the partner.
+**One-liner:** A calendar-first family app that assigns roles to kid events ("drop-off / pick-up"), syncs them to your device calendar for reminders, and lets the responsible adult confirm **"Dropped off / Picked up"** with one tap (time-window + biometric), then notifies the partner.
 
 ---
 
@@ -10,7 +10,7 @@
 4. [UX Spec (Condensed)](#3-ux-spec-condensed)
 5. [Data Model (Firestore Collections)](#4-data-model-firestore-collections)
 6. [API (Cloud Functions)](#5-api-cloud-functions)
-7. [Notifications Matrix (FCM)](#6-notifications-matrix-fcm)
+7. [Notifications & Calendar Sync](#6-notifications--calendar-sync)
 8. [Security](#7-security)
 9. [Tech Stack](#8-tech-stack)
 10. [Analytics](#9-analytics-firebase)
@@ -31,8 +31,9 @@
 - Children CRUD
 - Calendar views: **Day/Week/Month**
 - Event with role ("drop" / "pickup"), time window, recurring RRULE
+- **Native calendar sync** (events auto-add to device calendar with reminders)
 - One-tap self confirmation (within window) with **FaceID/PIN**
-- Push notifications (reminders & partner updates)
+- Push notifications (assignments, confirmations & unassigned alerts)
 - Activity log per child; **monthly PDF export**
 - Basic analytics
 
@@ -40,8 +41,9 @@
 - Teacher/coach confirmations
 - Fairness/rotas, carpooling
 - Payments, chat
-- ICS writeback; Google full sync (read-only import is stretch)
+- Two-way calendar sync (device calendar → app); ICS import/export; Google Calendar API integration
 - Multi-family circles/teams
+- Shared custody/split-family schedules
 
 ---
 
@@ -62,13 +64,13 @@
 - As a user, I add a recurring **drop-off** for Mia at School, Mon–Fri **08:00–08:40**, responsible: Me.
 - **Accept:** Event instances render in Day/Week/Month views; editing updates future instances; conflicting events for the same child warn.
 
-### US-03 Reminder & One-Tap Confirmation
-- As the responsible adult, I get a push at **T−15 min** and at window open; during the time window I tap **"Dropped off"** → biometric → success.
-- **Accept:** Confirmation writes a log with timestamp; partner receives "Done ✅" push.
+### US-03 Calendar Sync & One-Tap Confirmation
+- As the responsible adult, when an event is assigned to me, it's added to my phone calendar; during the time window I tap **"Dropped off"** → biometric → success.
+- **Accept:** Event appears in device calendar with reminders; confirmation writes a log with timestamp; partner receives "Done ✅" push.
 
-### US-04 Late Nudge
-- If not confirmed by **window_end−5 min**, I receive “5 minutes left” push; at window end partner gets “Not marked—check in?”.
-- **Accept:** Notifications fire according to schedule; multiple devices deduplicated.
+### US-04 Unassigned Event Alert
+- If I create an event without assigning it to anyone, the family owner receives a notification to assign someone.
+- **Accept:** Owner receives push notification; can assign from notification or in-app; once assigned, assignee gets notification + calendar sync.
 
 ### US-05 Activity Log & Export
 - I can view all confirmations for the month and export a **PDF** per child.
@@ -99,17 +101,28 @@
 **Settings**
 - **Children:** List with color avatars; Add child with name + color picker
 - **Family members:** List with owner badge; Add/Invite member with optional email/phone
+- **Calendar Sync:** 
+  - Toggle: "Sync my events to device calendar"
+  - Calendar picker: Choose which calendar to use (default, work, family, etc.)
+  - Sync status indicator
 - **Activity Log** (navigates to separate screen):
   - Filters: child dropdown, month dropdown
   - List: cards showing "Child • Role • Date/Time • Place • Confirmed by"
   - Export PDF and Share buttons in app bar
-- Notifications toggles (future)
+- **Notifications:** 
+  - Toggle: Assignment notifications
+  - Toggle: Confirmation notifications
+  - Toggle: Unassigned event alerts (owner only)
 - Privacy copy
 
 **Microcopy examples**
-- Reminder: "08:00–08:40 • School drop-off (You). Mark 'Dropped off'?"
-- Success: "Dropped off Mia • 08:17 ✅"
-- Late: "Pickup window ends in 5 min. Need to send 'Running late 10 min'?"
+- Assignment: "You're now responsible for Mia drop-off at School on Mon, Nov 6 at 08:00. Added to your calendar."
+- Reassignment: "Sarah assigned you Emma pickup at Daycare tomorrow at 15:30."
+- Unassigned alert (to owner): "Reminder: Mia drop-off at School on Wed needs someone assigned."
+- Confirmation success: "Dropped off Mia • 08:17 ✅"
+- Partner notification: "Done ✅ — Sarah confirmed Mia drop-off at School at 08:17."
+- Event updated: "Updated: Mia drop-off changed to 08:15 at School Main Entrance."
+- Calendar sync error banner: "⚠️ Calendar sync failed. Tap to retry or check permissions."
 
 ---
 
@@ -125,7 +138,16 @@
   "phone": "string?",
   "devices": [{"platform":"ios|android","fcm_token":"string","device_id":"string"}],
   "created_at": 0,
-  "tz": "IANA/TZ"
+  "tz": "IANA/TZ",
+  "settings": {
+    "calendar_sync_enabled": true,
+    "calendar_id": "string?", // device calendar ID to sync to
+    "notifications": {
+      "assignments": true,
+      "confirmations": true,
+      "unassigned_alerts": true // only for owner
+    }
+  }
 }
 
 // families/{familyId}
@@ -155,10 +177,11 @@
   "start_ts": 0,
   "end_ts": 0,
   "rrule": "RFC5545 string or null",
-  "responsible_user_id": "userId",
+  "responsible_user_id": "userId or null",
   "created_by": "userId",
   "created_at": 0,
-  "updated_at": 0
+  "updated_at": 0,
+  "calendar_synced_for": ["userId"] // tracks which users have this in their device calendar
 }
 
 // confirmations/{logId}
@@ -188,17 +211,32 @@ _All endpoints authenticate via Firebase Auth; enforce `family_id` scoping._
 
 ```
 POST /event.create
-  Body: { child_id, place_id, type, start_ts, end_ts, rrule?, responsible_user_id }
+  Body: { child_id, place, type, start_ts, end_ts, rrule?, responsible_user_id? }
   Returns: { event_id }
   Validations: window < 6h; start < end; no past-only RRULE; warn on overlap same child&type.
+  Triggers:
+    - If responsible_user_id provided → send "assigned" notification to user
+    - If responsible_user_id is null → schedule unassigned alert to owner (24h delay if event within 7 days)
 
 POST /event.update
   Body: { event_id, ...fields }
   Returns: { ok: true }
+  Triggers:
+    - If responsible_user_id changed → send "reassigned" notification to new user
+    - If time/place changed → send "event updated" notification to responsible user
+    - Update calendar_synced_for users' device calendars via client-side sync
+
+POST /event.calendar_synced
+  Body: { event_id, user_id, device_calendar_id }
+  Returns: { ok: true }
+  Purpose: Client reports successful calendar sync; updates calendar_synced_for array
 
 POST /event.delete
   Body: { event_id }
   Returns: { ok: true }
+  Triggers:
+    - Send "event deleted" notification to responsible user
+    - Client removes event from device calendar
 
 GET /calendar.range
   Query: start_ts, end_ts
@@ -224,15 +262,24 @@ POST /export.monthly_pdf
 
 ---
 
-## 6) Notifications Matrix (FCM)
+## 6) Notifications & Calendar Sync
 
-- **T−15 min (responsible):** “Window opens soon.”
-- **T=window start (responsible):** “You’re on duty now.”
-- **T=window_end−5 (responsible):** “5 minutes left.”
-- **On confirm (partner):** “Done ✅ — {child} {drop/pick} at {place}, {time}.”
-- **T=window end (partner, optional):** “Not marked—check in?”
+### Calendar Integration
+- **Auto-sync to device calendar:** When an event is assigned to you (or you assign it to yourself), it's automatically added to your phone's native calendar with:
+  - Event title: "{Child name} {role} at {place}"
+  - Time window: start_ts to end_ts
+  - Calendar reminders handled by phone's calendar app (user configurable in their calendar settings)
+  - Include note: "FamilyCal event - confirm in app when complete"
 
-_Deduplicate multi-device; respect quiet hours._
+### Push Notifications (FCM)
+- **Event assigned to you:** "You're now responsible for {child} {drop/pick} at {place} on {date} {time}. Added to your calendar."
+- **Event reassigned to you:** "{Member} assigned you {child} {drop/pick} at {place} on {date} {time}."
+- **Unassigned event alert (to family owner only):** "Reminder: {child} {drop/pick} at {place} on {date} needs someone assigned."
+- **On partner confirm:** "Done ✅ — {Member} confirmed {child} {drop/pick} at {place} at {time}."
+- **Event edited (to responsible user):** "Updated: {child} {drop/pick} changed to {new_time} at {new_place}."
+- **Event deleted (to responsible user):** "{child} {drop/pick} at {place} on {date} was removed."
+
+_Deduplicate multi-device; respect quiet hours; batch notifications when possible._
 
 ---
 
@@ -244,10 +291,14 @@ _Deduplicate multi-device; respect quiet hours._
 ---
 
 ## 8) Tech Stack
-- **Mobile:** Flutter;
+- **Mobile:** Flutter
 - **Backend:** Firebase Auth, Firestore, Cloud Functions (Node 20), FCM
-- **Local/offline:** SQLite + queued confirmations
-- **PDF:** client-side generation (e.g., pdfkit/dart_pdf) → share sheet
+- **Calendar sync:** 
+  - iOS: EventKit framework (calendar read/write permissions)
+  - Android: CalendarContract API (READ_CALENDAR, WRITE_CALENDAR permissions)
+  - Flutter plugin: `device_calendar` or similar
+- **Local/offline:** SQLite + queued confirmations & calendar syncs
+- **PDF:** client-side generation (dart_pdf) → share sheet
 - **Analytics:** Firebase Analytics + Crashlytics/Sentry
 
 ---
@@ -256,31 +307,46 @@ _Deduplicate multi-device; respect quiet hours._
 
 **Events**
 - `signup_complete`, `invite_sent`, `invite_accepted`
-- `event_created`, `event_confirm_press`, `event_confirm_success`
-- `reminder_opened`, `late_warning_opened`
+- `event_created`, `event_assigned`, `event_reassigned`
+- `calendar_sync_success`, `calendar_sync_failed`
+- `unassigned_alert_sent`, `unassigned_alert_opened`
+- `event_confirm_press`, `event_confirm_success`
+- `notification_opened` (generic for all notification types)
 - `pdf_export`
 
 **KPIs**
 - Families with ≥1 recurring event in 48h
 - Daily confirmations per active family
-- Reminder → confirm conversion rate
+- Calendar sync success rate
+- % events assigned within 24h of creation
+- Notification → action conversion rate
 - D7 / D30 retention
 
 ---
 
 ## 10) Edge Cases & Error Handling
-- **DST/timezones:** store in UTC; render in user TZ.
+- **DST/timezones:** store in UTC; render in user TZ; calendar events sync with correct local time.
 - **Overlap:** same child & type overlapping windows → block or warn + require override.
-- **Offline:** queue `/event.confirm` with idempotency key; show "Synced ✔︎" when posted.
+- **Offline:** queue `/event.confirm` with idempotency key; show "Synced ✔︎" when posted. Calendar sync also queued.
 - **Concurrent confirm:** first write wins; subsequent calls return `{ok:true, duplicate:true}`.
+- **Calendar permission denied:** Event still created in app; show banner "Enable calendar sync in settings to get reminders." App remains functional.
+- **Calendar sync failure:** Log error; retry once; if fails, mark event with "⚠️ Calendar sync failed" badge; allow manual retry.
+- **Recurring event limits:** If calendar provider has limits (e.g., some Android calendars), expand only next 90 days; refresh as time passes.
+- **Recurring event confirmation:** When user confirms one instance, it only marks that specific occurrence as confirmed; future instances remain in calendar until individually confirmed.
+- **Calendar deleted externally:** On next app open, detect missing calendar events; offer to re-sync or disable calendar sync.
+- **Unassigned event timing:** Send alert to owner 24h after event creation if still unassigned AND event start_ts is within 7 days.
 
 ---
 
 ## 11) Acceptance Test Checklist
 - [ ] Create family, invite partner, both see same child/place  
 - [ ] Create recurring event; instances render in Day/Week/Month views  
-- [ ] Receive T−15 and T0 reminders; confirm within window → partner push  
+- [ ] Assign event to self → appears in device calendar with reminder  
+- [ ] Create unassigned event → owner receives notification alert
+- [ ] Assign event to partner → partner receives notification + calendar sync  
+- [ ] Confirm within window → partner receives "Done ✅" push  
 - [ ] Confirm outside window → blocked with error  
+- [ ] Edit/delete assigned event → responsible user notified + calendar updated  
 - [ ] Offline confirm queues and syncs later  
 - [ ] Log filters by child and month; monthly PDF exports and opens  
 - [ ] Security rules: user cannot access other family's docs
@@ -302,15 +368,17 @@ _Deduplicate multi-device; respect quiet hours._
 - Children & places CRUD (places as free text)
 - Day/Week/Month calendar views with inline quick add
 
-**Sprint 2 (Events)**
+**Sprint 2 (Events & Sync)**
 - Event create/edit/delete + RRULE expansion service
+- Native calendar sync (iOS EventKit / Android Calendar Provider)
+- Assignment notifications (assigned, reassigned, unassigned alerts)
 - Local cache & filters
-- Reminder scheduler (Cloud Functions)
 
 **Sprint 3 (Confirmations)**
 - Confirm button UI + biometric/PIN
 - Time-window verification on server
-- Partner & late notifications
+- Partner confirmation notifications
+- Calendar updates on edit/delete
 - Offline queue + idempotency
 
 **Sprint 4 (Log & Export)**
@@ -323,5 +391,12 @@ _Deduplicate multi-device; respect quiet hours._
 
 ## 14) Environment & Config
 - `.env` (client): `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `SENTRY_DSN?`
-- Cloud Functions config: `TIME_WINDOW_GRACE_MINUTES=5`
-- iOS: Background modes (notifications); Android: notification channels for reminders
+- Cloud Functions config: 
+  - `TIME_WINDOW_GRACE_MINUTES=5`
+  - `UNASSIGNED_ALERT_DELAY_HOURS=24` (how long to wait before alerting owner about unassigned events)
+- **iOS:** 
+  - Permissions: Calendar (read/write), Notifications, Biometric
+  - Background modes: remote notifications
+- **Android:** 
+  - Permissions: READ_CALENDAR, WRITE_CALENDAR, POST_NOTIFICATIONS, USE_BIOMETRIC
+  - Notification channels: assignments, confirmations, alerts
