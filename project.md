@@ -145,20 +145,12 @@
   "created_at": 0
 }
 
-// places/{placeId}
-{
-  "id": "string",
-  "family_id": "string",
-  "name": "string",
-  "created_at": 0
-}
-
 // events/{eventId}
 {
   "id": "string",
   "family_id": "string",
   "child_id": "childId",
-  "place_id": "placeId",
+  "place": "string",
   "type": "drop|pickup",
   "start_ts": 0,
   "end_ts": 0,
@@ -252,7 +244,7 @@ _Deduplicate multi-device; respect quiet hours._
 ---
 
 ## 8) Tech Stack
-- **Mobile:** React Native (Expo) **or** Flutter; RTL ready
+- **Mobile:** Flutter;
 - **Backend:** Firebase Auth, Firestore, Cloud Functions (Node 20), FCM
 - **Local/offline:** SQLite + queued confirmations
 - **PDF:** client-side generation (e.g., pdfkit/dart_pdf) → share sheet
