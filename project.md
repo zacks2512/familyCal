@@ -1,5 +1,5 @@
 # FAMILYCAL — MVP PRD (Agent-Ready)
-**One-liner:** A calendar-first family app that assigns roles to kid events (“drop-off / pick-up”) and lets the responsible adult confirm **“Dropped off / Picked up”** with one tap (time-window + geofence + biometric), then pings the partner.
+**One-liner:** A calendar-first family app that assigns roles to kid events ("drop-off / pick-up") and lets the responsible adult confirm **"Dropped off / Picked up"** with one tap (time-window + biometric), then pings the partner.
 
 ---
 
@@ -11,7 +11,7 @@
 5. [Data Model (Firestore Collections)](#4-data-model-firestore-collections)
 6. [API (Cloud Functions)](#5-api-cloud-functions)
 7. [Notifications Matrix (FCM)](#6-notifications-matrix-fcm)
-8. [Geofence & Security](#7-geofence--security)
+8. [Security](#7-security)
 9. [Tech Stack](#8-tech-stack)
 10. [Analytics](#9-analytics-firebase)
 11. [Edge Cases & Error Handling](#10-edge-cases--error-handling)
@@ -25,13 +25,13 @@
 ## 0) Scope at a Glance
 
 **In-scope (MVP)**
-- Mobile app (React Native or Flutter)
+- Mobile app (Flutter)
 - Auth (email + magic link or phone OTP)
 - Family space (invite partner)
-- Children & places CRUD
-- Calendar views: **Day & Agenda** (Week = post-MVP)
-- Event with role (“drop” / “pickup”), time window, recurring RRULE
-- One-tap self confirmation (within window) with **geofence** + **FaceID/PIN**
+- Children CRUD
+- Calendar views: **Day/Week/Month**
+- Event with role ("drop" / "pickup"), time window, recurring RRULE
+- One-tap self confirmation (within window) with **FaceID/PIN**
 - Push notifications (reminders & partner updates)
 - Activity log per child; **monthly PDF export**
 - Basic analytics
@@ -55,16 +55,16 @@
 ## 2) Primary Flows (User Stories + Acceptance)
 
 ### US-01 Create Family & Invite Partner
-- As a new user, I create a family, add my children, add a place (school), invite partner.
-- **Accept:** Family exists; child & place persisted; partner gets invite link; both see same data after join.
+- As a new user, I create a family, add my children, invite partner.
+- **Accept:** Family exists; child persisted; partner gets invite link; both see same data after join.
 
 ### US-02 Add Recurring Event with Role
 - As a user, I add a recurring **drop-off** for Mia at School, Mon–Fri **08:00–08:40**, responsible: Me.
-- **Accept:** Event instances render in Day & Agenda; editing updates future instances; conflicting events for the same child warn.
+- **Accept:** Event instances render in Day; editing updates future instances; conflicting events for the same child warn.
 
 ### US-03 Reminder & One-Tap Confirmation
-- As the responsible adult, I get a push at **T−15 min** and at window open; when in geofence I tap **“Dropped off”** → biometric → success.
-- **Accept:** Confirmation writes a log (`geo_ok=true` if inside radius); partner receives “Done ✅” push.
+- As the responsible adult, I get a push at **T−15 min** and at window open; during the time window I tap **"Dropped off"** → biometric → success.
+- **Accept:** Confirmation writes a log with timestamp; partner receives "Done ✅" push.
 
 ### US-04 Late Nudge
 - If not confirmed by **window_end−5 min**, I receive “5 minutes left” push; at window end partner gets “Not marked—check in?”.
@@ -72,10 +72,10 @@
 
 ### US-05 Activity Log & Export
 - I can view all confirmations for the month and export a **PDF** per child.
-- **Accept:** PDF contains date/time/place/user/geo flag; shares via native share sheet.
+- **Accept:** PDF contains date/time/place/user; shares via native share sheet.
 
-### US-06 Offline / Low-GPS
-- If I’m offline or GPS is weak (garage), I can confirm with PIN/biometric; `geo_ok=false` recorded; sync later.
+### US-06 Offline
+- If I'm offline, I can confirm with PIN/biometric; confirmation recorded locally and syncs later.
 - **Accept:** Local queue flushes on reconnect; idempotent server confirm.
 
 ---
@@ -100,19 +100,18 @@
 
 **Log**
 - Filters: child, place, month
-- List: “2025-10-21 08:12 • School • Dropped off • You • geo✅”
+- List: "2025-10-21 08:12 • School • Dropped off • You"
 - Export PDF
 
 **Settings**
 - Family management, invites
-- Places geofence radius (default 150m)
 - Notifications toggles
 - Privacy copy
 
 **Microcopy examples**
-- Reminder: “08:00–08:40 • School drop-off (You). Mark ‘Dropped off’?”
-- Success: “Dropped off Mia • 08:17 • Location verified ✅”
-- Late: “Pickup window ends in 5 min. Need to send ‘Running late 10 min’?”
+- Reminder: "08:00–08:40 • School drop-off (You). Mark 'Dropped off'?"
+- Success: "Dropped off Mia • 08:17 ✅"
+- Late: "Pickup window ends in 5 min. Need to send 'Running late 10 min'?"
 
 ---
 
@@ -153,9 +152,6 @@
   "id": "string",
   "family_id": "string",
   "name": "string",
-  "lat": 0.0,
-  "lng": 0.0,
-  "radius_m": 150,
   "created_at": 0
 }
 
@@ -184,7 +180,6 @@
   "user_id": "userId",
   "type": "drop|pickup",
   "ts": 0,
-  "geo_ok": true,
   "device_ok": true,
   "note": "string?",
   "source": "online|offline-queued"
@@ -221,13 +216,12 @@ GET /calendar.range
   Notes: Expand RRULE on server; include only due instances.
 
 POST /event.confirm
-  Body: { event_id, ts_client, lat?, lng?, device_id }
+  Body: { event_id, ts_client, device_id }
   Server checks:
     - within window (± grace 5 min)
-    - geofence (distance <= radius_m) → sets geo_ok
     - user == responsible_user_id
   Writes ConfirmationLog; sends partner push.
-  Returns: { ok: true, geo_ok: boolean, server_ts }
+  Returns: { ok: true, server_ts }
 
 GET /log.month
   Query: child_id, month (YYYY-MM)
@@ -252,10 +246,9 @@ _Deduplicate multi-device; respect quiet hours._
 
 ---
 
-## 7) Geofence & Security
-- **Geofence:** radius default **150m** (configurable 80–200); check Haversine on server (trust but verify).
+## 7) Security
 - **Biometric/PIN:** require OS biometric or 4-digit PIN when confirming.
-- **Privacy:** store only `geo_ok` (boolean) in logs; raw lat/lng kept **max 14 days** for debugging (config flag), then purged.
+- **Privacy:** confirmations are time-stamped only; no location data collected.
 - **Rules:** Firestore Security Rules—documents readable/writable only if `request.auth.uid` is in `family.member_ids`.
 
 ---
@@ -273,14 +266,13 @@ _Deduplicate multi-device; respect quiet hours._
 
 **Events**
 - `signup_complete`, `invite_sent`, `invite_accepted`
-- `event_created`, `event_confirm_press`, `event_confirm_success`, `event_confirm_geo_false`
+- `event_created`, `event_confirm_press`, `event_confirm_success`
 - `reminder_opened`, `late_warning_opened`
 - `pdf_export`
 
 **KPIs**
 - Families with ≥1 recurring event in 48h
 - Daily confirmations per active family
-- % confirms with `geo_ok=true`
 - Reminder → confirm conversion rate
 - D7 / D30 retention
 
@@ -289,8 +281,7 @@ _Deduplicate multi-device; respect quiet hours._
 ## 10) Edge Cases & Error Handling
 - **DST/timezones:** store in UTC; render in user TZ.
 - **Overlap:** same child & type overlapping windows → block or warn + require override.
-- **Offline:** queue `/event.confirm` with idempotency key; show “Synced ✔︎” when posted.
-- **GPS fail:** allow confirm with `geo_ok=false` + note; surface clearly in log.
+- **Offline:** queue `/event.confirm` with idempotency key; show "Synced ✔︎" when posted.
 - **Concurrent confirm:** first write wins; subsequent calls return `{ok:true, duplicate:true}`.
 
 ---
@@ -300,10 +291,9 @@ _Deduplicate multi-device; respect quiet hours._
 - [ ] Create recurring event; instances render in Day & Agenda  
 - [ ] Receive T−15 and T0 reminders; confirm within window → partner push  
 - [ ] Confirm outside window → blocked with error  
-- [ ] Outside geofence confirm → allowed with `geo_ok=false` (after prompt)  
 - [ ] Offline confirm queues and syncs later  
 - [ ] Log filters by child; monthly PDF exports and opens  
-- [ ] Security rules: user cannot access other family’s docs
+- [ ] Security rules: user cannot access other family's docs
 
 ---
 
@@ -311,7 +301,7 @@ _Deduplicate multi-device; respect quiet hours._
 - **Beta footprint:** iOS TestFlight + Android Internal
 - **Device targets:** iOS 15+, Android 9+
 - **Perf budget:** app launch < 2.5s; confirm action < 300ms (local) + async server ack
-- **Privacy copy:** “FAMILYCAL stores only a yes/no location flag in history by default.”
+- **Privacy copy:** "FAMILYCAL does not collect location data. Confirmations are time-stamped only."
 
 ---
 
@@ -319,7 +309,7 @@ _Deduplicate multi-device; respect quiet hours._
 
 **Sprint 1 (Infra + CRUD)**
 - Auth, family space, invite flow
-- Children & places CRUD (with map picker & radius)
+- Children & places CRUD (places as free text)
 - Day/Agenda calendar scaffolding
 
 **Sprint 2 (Events)**
@@ -329,7 +319,7 @@ _Deduplicate multi-device; respect quiet hours._
 
 **Sprint 3 (Confirmations)**
 - Confirm button UI + biometric/PIN
-- Geofence check client hint + server verification
+- Time-window verification on server
 - Partner & late notifications
 - Offline queue + idempotency
 
@@ -343,5 +333,5 @@ _Deduplicate multi-device; respect quiet hours._
 
 ## 14) Environment & Config
 - `.env` (client): `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `SENTRY_DSN?`
-- Cloud Functions config: `GEORADIUS_DEFAULT=150`, `LOG_GEO_RETENTION_DAYS=14`
-- iOS: Background modes (location, notifications); Android: foreground service when needed during window
+- Cloud Functions config: `TIME_WINDOW_GRACE_MINUTES=5`
+- iOS: Background modes (notifications); Android: notification channels for reminders
