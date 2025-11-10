@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../models/entities.dart';
 import '../state/app_state.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/firebase_repository.dart';
+import '../config/app_config.dart';
 import 'auth/welcome_screen.dart';
 import 'log_screen.dart';
 
@@ -278,11 +280,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   displayName: nameController.text.trim(),
                   color: selectedColor,
                 );
-                state.addChild(child);
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Added ${child.displayName}')),
-                );
+                () async {
+                  if (!AppConfig.useMockData) {
+                    final repo = FirebaseRepository();
+                    final familyId =
+                        await repo.getCurrentUserFamilyId(createIfMissing: true);
+                    if (familyId != null) {
+                      await repo.addChild(
+                        familyId: familyId,
+                        name: child.displayName,
+                        color: '#${child.color.value.toRadixString(16).substring(2)}',
+                        birthDate: null,
+                        allergies: null,
+                      );
+                    }
+                  } else {
+                    state.addChild(child);
+                  }
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Added ${child.displayName}')),
+                    );
+                  }
+                }();
               },
               child: const Text('Add'),
             ),
@@ -366,22 +387,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : phoneController.text.trim(),
                 );
 
-                state.addMember(member);
-
-                if (sendInvite) {
-                  await Clipboard.setData(
-                    ClipboardData(
-                      text: 'https://familycal.app/invite/${member.id}',
-                    ),
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invite link copied ✅')),
-                    );
+                () async {
+                  if (!AppConfig.useMockData) {
+                    final repo = FirebaseRepository();
+                    final familyId =
+                        await repo.getCurrentUserFamilyId(createIfMissing: true);
+                    if (familyId != null) {
+                      final newUserId = await repo.addFamilyMember(
+                        familyId: familyId,
+                        displayName: member.displayName,
+                        email: member.email,
+                        phone: member.phone,
+                        invitePending: sendInvite,
+                      );
+                      if (sendInvite) {
+                        await Clipboard.setData(
+                          ClipboardData(
+                            text: 'https://familycal.app/invite/$newUserId',
+                          ),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Invite link copied ✅')),
+                          );
+                        }
+                      }
+                    }
+                  } else {
+                    state.addMember(member);
+                    if (sendInvite) {
+                      await Clipboard.setData(
+                        ClipboardData(
+                          text: 'https://familycal.app/invite/${member.id}',
+                        ),
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invite link copied ✅')),
+                        );
+                      }
+                    }
                   }
-                }
-
-                if (context.mounted) Navigator.of(context).pop();
+                  if (context.mounted) Navigator.of(context).pop();
+                }();
               },
               child: const Text('Add'),
             ),

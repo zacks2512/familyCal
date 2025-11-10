@@ -403,6 +403,63 @@ class FirebaseRepository {
   
   // ==================== MEMBERS ====================
   
+  /// Add a member to the family (creates a placeholder user doc if needed)
+  Future<String> addFamilyMember({
+    required String familyId,
+    required String displayName,
+    String? email,
+    String? phone,
+    bool invitePending = true,
+  }) async {
+    // Create a new user document with generated id
+    final userRef = _firestore.collection('users').doc();
+    final userId = userRef.id;
+    await userRef.set({
+      'id': userId,
+      'display_name': displayName,
+      'email': email,
+      'phone': phone,
+      'family_id': familyId,
+      'invite_pending': invitePending,
+      'created_at': FieldValue.serverTimestamp(),
+    });
+    // Append to family's member_ids
+    await _firestore.collection('families').doc(familyId).update({
+      'member_ids': FieldValue.arrayUnion([userId]),
+    });
+    debugPrint('✅ Added member $displayName ($userId) to family $familyId');
+    return userId;
+  }
+
+  /// Remove a member from the family (does not delete the user doc)
+  Future<void> removeFamilyMember({
+    required String familyId,
+    required String userId,
+  }) async {
+    await _firestore.collection('families').doc(familyId).update({
+      'member_ids': FieldValue.arrayRemove([userId]),
+    });
+    debugPrint('🗑️ Removed member $userId from family $familyId');
+  }
+
+  /// Update a user's profile fields
+  Future<void> updateUserProfile({
+    required String userId,
+    String? displayName,
+    String? email,
+    String? phone,
+    bool? invitePending,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (displayName != null) updates['display_name'] = displayName;
+    if (email != null) updates['email'] = email;
+    if (phone != null) updates['phone'] = phone;
+    if (invitePending != null) updates['invite_pending'] = invitePending;
+    if (updates.isEmpty) return;
+    await _firestore.collection('users').doc(userId).update(updates);
+    debugPrint('✅ Updated user $userId');
+  }
+
   /// Get user by ID
   Future<FamilyMember?> getMember(String userId) async {
     final doc = await _firestore.collection('users').doc(userId).get();

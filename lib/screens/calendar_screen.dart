@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/entities.dart';
+import '../config/app_config.dart';
+import '../services/firebase_repository.dart';
 import '../state/app_state.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -345,6 +347,61 @@ class _CalendarScreenState extends State<CalendarScreen> {
     QuickAddEvent event, {
     bool closeSheet = false,
   }) {
+    // Real mode: persist to Firestore
+    if (!AppConfig.useMockData) {
+      final repo = FirebaseRepository();
+      () async {
+        final familyId = await repo.getCurrentUserFamilyId(createIfMissing: true);
+        if (familyId == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not determine family.')),
+            );
+          }
+          return;
+        }
+
+        // Determine place name
+        final placeName = event.placeName.trim().isEmpty ? 'Home' : event.placeName.trim();
+        // Times as HH:mm
+        String fmt(TimeOfDay t) =>
+            '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+        try {
+          await repo.createEvent(
+            familyId: familyId,
+            childId: event.childId,
+            place: placeName,
+            role: event.role,
+            startTime: fmt(event.start),
+            endTime: fmt(event.end),
+            startDate: DateUtils.dateOnly(event.date),
+            weekdays: (event.repeatWeekdays ?? {event.date.weekday}).toList(),
+            responsibleMemberId: (event.responsibleMemberId?.isEmpty ?? true)
+                ? null
+                : event.responsibleMemberId,
+            endDate: event.endDate != null ? DateUtils.dateOnly(event.endDate!) : null,
+            title: event.title,
+            notes: null,
+          );
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Added ${event.title}')));
+          if (closeSheet) {
+            Navigator.of(context).maybePop();
+          } else {
+            setState(() => _showInlineQuickAdd = false);
+          }
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add event: $e')),
+          );
+        }
+      }();
+      return;
+    }
+
     // Handle place (optional) - create or reuse if provided
     String placeId;
     if (event.placeName.trim().isEmpty) {
@@ -1273,12 +1330,38 @@ class _DayEventTile extends StatelessWidget {
                           event: event,
                           placeName: place.name,
                           date: instance.windowStart,
-                          onSubmit: (updatedEvent) {
-                            state.updateEvent(updatedEvent);
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Updated ${updatedEvent.title}')),
-                            );
+                          onSubmit: (updatedEvent) async {
+                            if (!AppConfig.useMockData) {
+                              final repo = FirebaseRepository();
+                              final familyId = await repo.getCurrentUserFamilyId(createIfMissing: true);
+                              if (familyId != null) {
+                                String fmt(TimeOfDay t) =>
+                                    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+                                await repo.updateEvent(
+                                  familyId: familyId,
+                                  eventId: updatedEvent.id,
+                                  childId: updatedEvent.childId,
+                                  place: state.placeById(updatedEvent.placeId).name,
+                                  role: updatedEvent.role,
+                                  responsibleMemberId: updatedEvent.responsibleMemberId,
+                                  startTime: fmt(updatedEvent.startTime),
+                                  endTime: fmt(updatedEvent.endTime),
+                                  startDate: updatedEvent.startDate,
+                                  weekdays: updatedEvent.weekdays.toList(),
+                                  endDate: updatedEvent.endDate,
+                                  title: updatedEvent.title,
+                                  notes: updatedEvent.notes,
+                                );
+                              }
+                            } else {
+                              state.updateEvent(updatedEvent);
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Updated ${updatedEvent.title}')),
+                              );
+                            }
                           },
                         ),
                         const SizedBox(height: 16),
@@ -1335,12 +1418,22 @@ class _DayEventTile extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              state.deleteEvent(instance.event.id);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Event deleted')),
-              );
+            onPressed: () async {
+              if (!AppConfig.useMockData) {
+                final repo = FirebaseRepository();
+                final familyId = await repo.getCurrentUserFamilyId(createIfMissing: false);
+                if (familyId != null) {
+                  await repo.deleteEvent(familyId, instance.event.id);
+                }
+              } else {
+                state.deleteEvent(instance.event.id);
+              }
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Event deleted')),
+                );
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,

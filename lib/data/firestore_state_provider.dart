@@ -81,10 +81,28 @@ class _FirestoreAppStateProviderState extends State<FirestoreAppStateProvider> {
         _state?.replaceChildren(children);
       }));
 
-      // Subscribe to events
+      // Subscribe to events and synthesize places list from event 'place' field
       _subs.add(_repo.watchEvents(familyId).listen((events) {
         final mapped = events.map(_mapEvent).whereType<RecurringEvent>().toList();
         _state?.replaceEvents(mapped);
+
+        // Build a simple places list from event 'place' names to avoid lookups failing
+        final uniqueNames = <String>{};
+        for (final e in events) {
+          final name = (e['place'] as String?)?.trim();
+          if (name != null && name.isNotEmpty) uniqueNames.add(name);
+        }
+        final places = uniqueNames.map((name) {
+          // Deterministic id based on name
+          final id = 'place-${name.toLowerCase().replaceAll(' ', '-') }';
+          return FamilyPlace(
+            id: id,
+            name: name,
+            address: '',
+            radiusMeters: 150,
+          );
+        }).toList();
+        _state?.replacePlaces(places);
       }));
 
       setState(() {
@@ -120,10 +138,14 @@ class _FirestoreAppStateProviderState extends State<FirestoreAppStateProvider> {
       final endDate = endDateTs is Timestamp ? endDateTs.toDate() : null;
       final weekdays = Set<int>.from((data['weekdays'] as List).map((e) => e as int));
 
+      // Derive a stable place id from the place name
+      final placeName = (data['place'] as String?) ?? 'Unknown';
+      final placeId = 'place-${placeName.toLowerCase().replaceAll(' ', '-') }';
+
       return RecurringEvent(
         id: data['id'] as String,
         childId: data['child_id'] as String,
-        placeId: (data['place'] as String?) ?? 'unknown',
+        placeId: placeId,
         role: role,
         responsibleMemberId: data['responsible_member_id'] as String?,
         startTime: startTime,
