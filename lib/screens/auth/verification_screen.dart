@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'signup_screen.dart';
 import '../../services/mock_auth_service.dart';
 import '../../app.dart';
+import '../onboarding/family_setup_flow.dart';
 
 /// Verification screen for OTP/Magic Link
 class VerificationScreen extends StatefulWidget {
@@ -88,19 +89,28 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (!mounted) return;
 
       if (success) {
-        // Success! Navigate to main app
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
-          (route) => false, // Remove all previous routes
-        );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Welcome to FamilyCal!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        // Success! Navigate based on signup or login
+        if (widget.isSignup) {
+          // New registration - go through family setup
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
+            (route) => false,
+          );
+        } else {
+          // Existing user login - go directly to app
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+            (route) => false,
+          );
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Welcome back!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         _showError('Invalid code. Please try again.');
       }

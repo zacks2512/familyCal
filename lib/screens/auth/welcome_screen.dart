@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import '../../services/mock_auth_service.dart';
+import '../onboarding/family_setup_flow.dart';
 import '../../app.dart';
 
 /// Welcome screen - first screen users see
@@ -24,8 +25,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       if (!mounted) return;
       
       if (success) {
+        // Navigate to family setup flow after social sign-in (new registration)
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+          MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
           (route) => false,
         );
       }
@@ -96,83 +98,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               const Spacer(flex: 2),
               
-              // Social Sign In Buttons
-              _SocialSignInButton(
-                icon: Icons.g_mobiledata,
-                label: 'Continue with Google',
-                onPressed: _isLoading 
-                    ? null 
-                    : () => _handleSocialSignIn(
-                        MockAuthService.signInWithGoogle, 
-                        'Google',
-                      ),
-                isLoading: _isLoading,
-              ),
-              
-              const SizedBox(height: 12),
-              
-              _SocialSignInButton(
-                icon: Icons.apple,
-                label: 'Continue with Apple',
-                onPressed: _isLoading 
-                    ? null 
-                    : () => _handleSocialSignIn(
-                        MockAuthService.signInWithApple, 
-                        'Apple',
-                      ),
-                isLoading: _isLoading,
-              ),
-              
-              const SizedBox(height: 12),
-              
-              _SocialSignInButton(
-                icon: Icons.facebook,
-                label: 'Continue with Facebook',
-                onPressed: _isLoading 
-                    ? null 
-                    : () => _handleSocialSignIn(
-                        MockAuthService.signInWithFacebook, 
-                        'Facebook',
-                      ),
-                isLoading: _isLoading,
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Divider with OR
-              Row(
-                children: [
-                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'or',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Email/Phone Sign Up Button
+              // Register Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const SignupScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.email_outlined),
-                  label: const Text(
-                    'Sign up with Email or Phone',
+                child: OutlinedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => RegisterOptionsScreen(
+                                onSocialSignIn: _handleSocialSignIn,
+                              ),
+                            ),
+                          );
+                        },
+                  child: const Text(
+                    'Register',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -188,13 +131,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 width: double.infinity,
                 height: 56,
                 child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginOptionsScreen(),
+                            ),
+                          );
+                        },
                   child: const Text(
                     'Log In',
                     style: TextStyle(
@@ -226,19 +171,298 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 }
 
-/// Social sign-in button widget
-class _SocialSignInButton extends StatelessWidget {
-  const _SocialSignInButton({
+/// Register options screen - shows social and email/phone options
+class RegisterOptionsScreen extends StatelessWidget {
+  const RegisterOptionsScreen({
+    super.key,
+    required this.onSocialSignIn,
+  });
+
+  final Future<void> Function(Future<bool> Function(), String) onSocialSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Text(
+                'Register',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose how you\'d like to register',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+              
+              // Social Options
+              _SocialButton(
+                icon: Icons.g_mobiledata,
+                label: 'Continue with Google',
+                onPressed: () => onSocialSignIn(
+                  MockAuthService.signInWithGoogle,
+                  'Google',
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              _SocialButton(
+                icon: Icons.facebook,
+                label: 'Continue with Facebook',
+                onPressed: () => onSocialSignIn(
+                  MockAuthService.signInWithFacebook,
+                  'Facebook',
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Divider
+              Row(
+                children: [
+                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'or',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Email/Phone Option
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SignupScreen(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                ),
+                icon: const Icon(Icons.email_outlined),
+                label: const Text(
+                  'Register with Email or Phone',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Login options screen - shows social and email/phone options
+class LoginOptionsScreen extends StatefulWidget {
+  const LoginOptionsScreen({super.key});
+
+  @override
+  State<LoginOptionsScreen> createState() => _LoginOptionsScreenState();
+}
+
+class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
+  bool _isLoading = false;
+
+  Future<void> _handleSocialLogin(Future<bool> Function() signInMethod, String provider) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await signInMethod();
+      
+      if (!mounted) return;
+      
+      if (success) {
+        // Login goes directly to calendar app (user already has family setup)
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$provider Login failed: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Text(
+                'Log In',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose how you\'d like to log in',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+              
+              // Social Options
+              _SocialButton(
+                icon: Icons.g_mobiledata,
+                label: 'Continue with Google',
+                onPressed: _isLoading
+                    ? null
+                    : () => _handleSocialLogin(
+                        MockAuthService.signInWithGoogle,
+                        'Google',
+                      ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              _SocialButton(
+                icon: Icons.facebook,
+                label: 'Continue with Facebook',
+                onPressed: _isLoading
+                    ? null
+                    : () => _handleSocialLogin(
+                        MockAuthService.signInWithFacebook,
+                        'Facebook',
+                      ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Divider
+              Row(
+                children: [
+                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'or',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Email/Phone Option
+              OutlinedButton.icon(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                ),
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.email_outlined),
+                label: const Text(
+                  'Log In with Email or Phone',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Social button widget
+class _SocialButton extends StatelessWidget {
+  const _SocialButton({
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.isLoading = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
-  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -255,13 +479,7 @@ class _SocialSignInButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        icon: isLoading 
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(icon, size: 24),
+        icon: Icon(icon, size: 24),
         label: Text(
           label,
           style: const TextStyle(

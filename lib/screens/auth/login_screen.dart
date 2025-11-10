@@ -111,53 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 32),
-                
-                // Social Sign In Options
-                _SocialSignInButton(
-                  icon: Icons.g_mobiledata,
-                  label: 'Continue with Google',
-                  colorScheme: colorScheme,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Google Sign-In coming soon')),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 12),
-                
-                _SocialSignInButton(
-                  icon: Icons.apple,
-                  label: 'Continue with Apple',
-                  colorScheme: colorScheme,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Apple Sign-In coming soon')),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: colorScheme.outlineVariant)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or use email/phone',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: colorScheme.outlineVariant)),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
+                const SizedBox(height: 40),
                 
                 // Method Selector
                 Container(
@@ -353,46 +307,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Social sign-in button for login screen
-class _SocialSignInButton extends StatelessWidget {
-  const _SocialSignInButton({
-    required this.icon,
-    required this.label,
-    required this.colorScheme,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final ColorScheme colorScheme;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: colorScheme.outline),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        icon: Icon(icon, size: 24),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
           ),
         ),
       ),
