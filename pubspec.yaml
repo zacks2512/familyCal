@@ -31,9 +31,41 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # State management
   provider: ^6.1.2
+  
+  # Internationalization
   intl: ^0.19.0
 
+  # Firebase
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  firebase_messaging: ^14.7.9
+  cloud_firestore: ^4.13.6
+  cloud_functions: ^4.5.12
+  # TODO: Re-enable after fixing compatibility issue with Gradle 8.5 + SDK 35
+  # flutter_local_notifications: ^16.2.0
+  
+  # Calendar integration
+  device_calendar: ^4.3.3
+  timezone: ^0.9.2
+  
+  # Local database
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  
+  # Biometric authentication
+  local_auth: ^2.1.0
+  
+  # PDF generation
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  share_plus: ^7.2.1
+  
+  # Utilities
+  uuid: ^4.2.1
+  rxdart: ^0.27.7
+  connectivity_plus: ^5.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

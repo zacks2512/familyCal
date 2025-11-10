@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "478220568403",
+    "project_id": "familycal-3b3a9",
+    "storage_bucket": "familycal-3b3a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478220568403:android:1eb21ead9d5cc9240183a6",
+        "android_client_info": {
+          "package_name": "com.example.familycal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB66YfV8dQGIwlAa3wxkCzC_SbJi974G7w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

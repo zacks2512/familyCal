@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function getFamilyData(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)).data;
+    }
+    
+    function isFamilyMember(familyId) {
+      return isAuthenticated() && 
+             request.auth.uid in getFamilyData(familyId).member_ids;
+    }
+    
+    function isFamilyOwner(familyId) {
+      return isAuthenticated() && 
+             request.auth.uid == getFamilyData(familyId).owner_id;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid == userId || 
+                      request.auth.uid in getFamilyData(resource.data.family_id).member_ids);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Families collection
+    match /families/{familyId} {
+      allow read: if isFamilyMember(familyId);
+      allow create: if isAuthenticated();
+      allow update: if isFamilyOwner(familyId);
+      allow delete: if isFamilyOwner(familyId);
+      
+      // Children subcollection
+      match /children/{childId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isFamilyMember(familyId);
+      }
+      
+      // Events subcollection
+      match /events/{eventId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId) && 
+                         request.resource.data.family_id == familyId;
+        allow update: if isFamilyMember(familyId) && 
+                         resource.data.family_id == familyId;
+        allow delete: if isFamilyMember(familyId);
+      }
+      
+      // Confirmations subcollection
+      match /confirmations/{confirmationId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId) && 
+                         request.resource.data.family_id == familyId &&
+                         request.resource.data.confirmed_by_id == request.auth.uid;
+        allow update: if false; // Confirmations are immutable
+        allow delete: if isFamilyOwner(familyId);
+      }
+      
+      // Pending syncs subcollection
+      match /pending_syncs/{syncId} {
+        allow read, write: if isFamilyMember(familyId);
+      }
+    }
+    
+    // Invites collection
+    match /invites/{inviteCode} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+  }
+}
+

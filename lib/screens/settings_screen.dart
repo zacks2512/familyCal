@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../models/entities.dart';
 import '../state/app_state.dart';
+import '../services/mock_auth_service.dart';
+import 'auth/welcome_screen.dart';
 import 'log_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -104,9 +106,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          // ACCOUNT
+          const _SectionHeader(title: 'Account'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.person_outline,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(MockAuthService.currentUserName ?? 'User'),
+                  subtitle: const Text('Logged in'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Icon(
+                    Icons.logout,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(
+                    'Sign Out',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  onTap: () => _handleSignOut(context),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await MockAuthService.signOut();
+      
+      if (context.mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   // ---------- DIALOGS ----------
