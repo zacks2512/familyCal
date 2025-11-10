@@ -1677,7 +1677,15 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                 child: _TimeField(
                   label: 'Start',
                   time: _start,
-                  onChanged: (value) => setState(() => _start = value),
+                  onChanged: (value) => setState(() {
+                    _start = value;
+                    final startMinutes = _start.hour * 60 + _start.minute;
+                    final endMinutes = _end.hour * 60 + _end.minute;
+                    if (endMinutes < startMinutes) {
+                      // Keep duration >= 0 by snapping end to start
+                      _end = TimeOfDay(hour: _start.hour, minute: _start.minute);
+                    }
+                  }),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2000,7 +2008,14 @@ class _EditEventFormState extends State<_EditEventForm> {
                 child: _TimeField(
                   label: 'Start',
                   time: _start,
-                  onChanged: (value) => setState(() => _start = value),
+                  onChanged: (value) => setState(() {
+                    _start = value;
+                    final startMinutes = _start.hour * 60 + _start.minute;
+                    final endMinutes = _end.hour * 60 + _end.minute;
+                    if (endMinutes < startMinutes) {
+                      _end = TimeOfDay(hour: _start.hour, minute: _start.minute);
+                    }
+                  }),
                 ),
               ),
               const SizedBox(width: 12),
