@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 enum EventRole { dropOff, pickUp }
 
+enum RecurrenceRule { none, daily, weekly, monthly, yearly }
+
 extension EventRoleDisplay on EventRole {
   String get label => switch (this) {
         EventRole.dropOff => 'Drop-off',
@@ -102,6 +104,7 @@ class RecurringEvent {
     required this.childId,
     required this.placeId,
     required this.role,
+    this.recurrence = RecurrenceRule.weekly,
     required this.startTime,
     required this.endTime,
     required this.weekdays,
@@ -117,6 +120,7 @@ class RecurringEvent {
   final String childId;
   final String placeId;
   final EventRole role;
+  final RecurrenceRule recurrence;
   final String? responsibleMemberId;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
@@ -130,13 +134,20 @@ class RecurringEvent {
   bool occursOn(DateTime date) {
     final normalized = DateUtils.dateOnly(date);
     final normalizedStart = DateUtils.dateOnly(startDate);
-    if (normalized.isBefore(normalizedStart)) {
-      return false;
+    if (normalized.isBefore(normalizedStart)) return false;
+    if (endDate != null && normalized.isAfter(DateUtils.dateOnly(endDate!))) return false;
+    switch (recurrence) {
+      case RecurrenceRule.none:
+        return normalized.isAtSameMomentAs(normalizedStart);
+      case RecurrenceRule.daily:
+        return true;
+      case RecurrenceRule.weekly:
+        return weekdays.contains(normalized.weekday);
+      case RecurrenceRule.monthly:
+        return normalized.day == normalizedStart.day;
+      case RecurrenceRule.yearly:
+        return normalized.day == normalizedStart.day && normalized.month == normalizedStart.month;
     }
-    if (endDate != null && normalized.isAfter(DateUtils.dateOnly(endDate!))) {
-      return false;
-    }
-    return weekdays.contains(normalized.weekday);
   }
 
   EventInstance toInstanceOn(DateTime date) {

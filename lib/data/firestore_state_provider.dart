@@ -120,6 +120,14 @@ class _FirestoreAppStateProviderState extends State<FirestoreAppStateProvider> {
     try {
       final roleName = (data['role'] as String?) ?? 'dropOff';
       final role = roleName == 'pickUp' ? EventRole.pickUp : EventRole.dropOff;
+      final recurrenceName = (data['recurrence'] as String?) ?? 'weekly';
+      final recurrence = switch (recurrenceName) {
+        'none' => RecurrenceRule.none,
+        'daily' => RecurrenceRule.daily,
+        'monthly' => RecurrenceRule.monthly,
+        'yearly' => RecurrenceRule.yearly,
+        _ => RecurrenceRule.weekly,
+      };
       final startTimeStr = data['start_time'] as String? ?? '08:00';
       final endTimeStr = data['end_time'] as String? ?? '09:00';
 
@@ -147,6 +155,7 @@ class _FirestoreAppStateProviderState extends State<FirestoreAppStateProvider> {
         childId: data['child_id'] as String,
         placeId: placeId,
         role: role,
+        recurrence: recurrence,
         responsibleMemberId: data['responsible_member_id'] as String?,
         startTime: startTime,
         endTime: endTime,

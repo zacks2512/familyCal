@@ -189,6 +189,7 @@ class FirebaseRepository {
     required String childId,
     required String place,
     required EventRole role,
+    RecurrenceRule recurrence = RecurrenceRule.weekly,
     required String startTime,
     required String endTime,
     required DateTime startDate,
@@ -213,6 +214,7 @@ class FirebaseRepository {
       'child_id': childId,
       'place': place,
       'role': role.name,
+      'recurrence': _recurrenceToName(recurrence),
       'responsible_member_id': responsibleMemberId,
       'start_time': startTime,
       'end_time': endTime,
@@ -238,6 +240,7 @@ class FirebaseRepository {
     String? childId,
     String? place,
     EventRole? role,
+    RecurrenceRule? recurrence,
     String? responsibleMemberId,
     String? startTime,
     String? endTime,
@@ -254,6 +257,7 @@ class FirebaseRepository {
     if (childId != null) updates['child_id'] = childId;
     if (place != null) updates['place'] = place;
     if (role != null) updates['role'] = role.name;
+    if (recurrence != null) updates['recurrence'] = _recurrenceToName(recurrence);
     if (responsibleMemberId != null) {
       updates['responsible_member_id'] = responsibleMemberId;
     }
@@ -538,6 +542,21 @@ class FirebaseRepository {
   Color _parseColor(String colorString) {
     final hex = colorString.replaceFirst('#', '');
     return Color(int.parse('FF$hex', radix: 16));
+  }
+
+  String _recurrenceToName(RecurrenceRule r) {
+    switch (r) {
+      case RecurrenceRule.none:
+        return 'none';
+      case RecurrenceRule.daily:
+        return 'daily';
+      case RecurrenceRule.weekly:
+        return 'weekly';
+      case RecurrenceRule.monthly:
+        return 'monthly';
+      case RecurrenceRule.yearly:
+        return 'yearly';
+    }
   }
 }
 

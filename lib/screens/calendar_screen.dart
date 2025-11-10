@@ -347,6 +347,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
     QuickAddEvent event, {
     bool closeSheet = false,
   }) {
+    // Normalize no-repeat as a single occurrence (endDate == startDate)
+    final isNoRepeat = event.repeatOption == RepeatOption.noRepeat;
+    final computedWeekdays =
+        event.repeatWeekdays ?? {event.date.weekday}; // fallback to selected day
+    final computedEndDate =
+        isNoRepeat ? DateUtils.dateOnly(event.date) : event.endDate;
+
+    // Map repeat option to recurrence rule
+    final recurrence = switch (event.repeatOption) {
+      RepeatOption.noRepeat => RecurrenceRule.none,
+      RepeatOption.daily => RecurrenceRule.daily,
+      RepeatOption.weekly => RecurrenceRule.weekly,
+      RepeatOption.monthly => RecurrenceRule.monthly,
+      RepeatOption.yearly => RecurrenceRule.yearly,
+    };
+
     // Real mode: persist to Firestore
     if (!AppConfig.useMockData) {
       final repo = FirebaseRepository();
@@ -373,14 +389,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
             childId: event.childId,
             place: placeName,
             role: event.role,
+            recurrence: recurrence,
             startTime: fmt(event.start),
             endTime: fmt(event.end),
             startDate: DateUtils.dateOnly(event.date),
-            weekdays: (event.repeatWeekdays ?? {event.date.weekday}).toList(),
+            weekdays: computedWeekdays.toList(),
             responsibleMemberId: (event.responsibleMemberId?.isEmpty ?? true)
                 ? null
                 : event.responsibleMemberId,
-            endDate: event.endDate != null ? DateUtils.dateOnly(event.endDate!) : null,
+            endDate: computedEndDate != null ? DateUtils.dateOnly(computedEndDate) : null,
             title: event.title,
             notes: null,
           );
@@ -444,11 +461,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       childId: event.childId,
       placeId: placeId,
       role: event.role,
+      recurrence: recurrence,
       responsibleMemberId:
           (event.responsibleMemberId?.isEmpty ?? true) ? null : event.responsibleMemberId,
       startTime: event.start,
       endTime: event.end,
-      weekdays: event.repeatWeekdays ?? {event.date.weekday},
+      weekdays: computedWeekdays,
       startDate: DateUtils.dateOnly(event.date),
       endDate: event.endDate != null ? DateUtils.dateOnly(event.endDate!) : null,
       title: event.title,
@@ -1343,6 +1361,7 @@ class _DayEventTile extends StatelessWidget {
                                   childId: updatedEvent.childId,
                                   place: state.placeById(updatedEvent.placeId).name,
                                   role: updatedEvent.role,
+                                  recurrence: updatedEvent.recurrence,
                                   responsibleMemberId: updatedEvent.responsibleMemberId,
                                   startTime: fmt(updatedEvent.startTime),
                                   endTime: fmt(updatedEvent.endTime),
@@ -1537,6 +1556,7 @@ class QuickAddEvent {
     this.responsibleMemberId,
     this.repeatWeekdays,
     this.endDate,
+    required this.repeatOption,
   });
 
   final String title;
@@ -1549,6 +1569,7 @@ class QuickAddEvent {
   final String? responsibleMemberId;
   final Set<int>? repeatWeekdays;
   final DateTime? endDate;
+  final RepeatOption repeatOption;
 }
 
 class _QuickAddForm extends StatefulWidget {
@@ -1791,6 +1812,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                       responsibleMemberId: _responsibleId,
                       repeatWeekdays: weekdays,
                       endDate: _endDate,
+                      repeatOption: _repeatOption,
                     ),
                   );
                 },
@@ -1930,13 +1952,23 @@ class _EditEventFormState extends State<_EditEventForm> {
     _responsibleId = widget.event.responsibleMemberId;
     _endDate = widget.event.endDate;
     
-    // Determine repeat option from weekdays
-    if (widget.event.weekdays.length == 7) {
-      _repeatOption = RepeatOption.daily;
-    } else if (widget.event.weekdays.length == 1) {
-      _repeatOption = RepeatOption.noRepeat;
-    } else {
-      _repeatOption = RepeatOption.weekly;
+    // Determine repeat option from event.recurrence
+    switch (widget.event.recurrence) {
+      case RecurrenceRule.none:
+        _repeatOption = RepeatOption.noRepeat;
+        break;
+      case RecurrenceRule.daily:
+        _repeatOption = RepeatOption.daily;
+        break;
+      case RecurrenceRule.weekly:
+        _repeatOption = RepeatOption.weekly;
+        break;
+      case RecurrenceRule.monthly:
+        _repeatOption = RepeatOption.monthly;
+        break;
+      case RecurrenceRule.yearly:
+        _repeatOption = RepeatOption.yearly;
+        break;
     }
   }
 
@@ -2161,17 +2193,31 @@ class _EditEventFormState extends State<_EditEventForm> {
         break;
     }
 
+    // Normalize no-repeat to single occurrence by setting endDate == date
+    final normalizedEndDate =
+        _repeatOption == RepeatOption.noRepeat ? DateUtils.dateOnly(widget.date) : _endDate;
+
+    // Map repeat option to recurrence rule
+    final updatedRecurrence = switch (_repeatOption) {
+      RepeatOption.noRepeat => RecurrenceRule.none,
+      RepeatOption.daily => RecurrenceRule.daily,
+      RepeatOption.weekly => RecurrenceRule.weekly,
+      RepeatOption.monthly => RecurrenceRule.monthly,
+      RepeatOption.yearly => RecurrenceRule.yearly,
+    };
+
     final updatedEvent = RecurringEvent(
       id: widget.event.id,
       childId: _childId!,
       placeId: placeId,
       role: _role,
+      recurrence: updatedRecurrence,
       responsibleMemberId: _responsibleId?.isEmpty ?? true ? null : _responsibleId,
       startTime: _start,
       endTime: _end,
       weekdays: weekdays,
       startDate: widget.event.startDate,
-      endDate: _endDate,
+      endDate: normalizedEndDate,
       title: _titleController.text.trim(),
       notes: widget.event.notes,
     );
