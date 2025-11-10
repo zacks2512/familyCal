@@ -81,6 +81,45 @@ class FamilyCalState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---- Firestore adapters: replace collections from external sources ----
+  void replaceMembers(List<FamilyMember> members) {
+    _members = List.of(members);
+    if (_members.isEmpty) return;
+    final stillValid = _members.any((m) => m.id == _currentMemberId);
+    if (!stillValid) {
+      _currentMemberId = _members.first.id;
+    }
+    notifyListeners();
+  }
+
+  void replaceChildren(List<FamilyChild> children) {
+    _children
+      ..clear()
+      ..addAll(children);
+    notifyListeners();
+  }
+
+  void replacePlaces(List<FamilyPlace> places) {
+    _places
+      ..clear()
+      ..addAll(places);
+    notifyListeners();
+  }
+
+  void replaceEvents(List<RecurringEvent> events) {
+    _events
+      ..clear()
+      ..addAll(events);
+    notifyListeners();
+  }
+
+  void replaceConfirmations(List<ConfirmationLog> logs) {
+    _confirmations
+      ..clear()
+      ..addAll(logs);
+    notifyListeners();
+  }
+
   List<EventInstance> instancesForDay(DateTime date) {
     final instances = _events
         .where((event) => event.occursOn(date))

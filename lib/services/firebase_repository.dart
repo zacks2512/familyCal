@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/entities.dart';
 import 'dart:async';
 
@@ -10,6 +11,20 @@ class FirebaseRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   
   String? get currentUserId => _auth.currentUser?.uid;
+  
+  /// Get current user's family ID (creates one if missing, optionally)
+  Future<String?> getCurrentUserFamilyId({bool createIfMissing = true}) async {
+    final userId = currentUserId;
+    if (userId == null) return null;
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final data = userDoc.data();
+    if (data != null && data['family_id'] is String && (data['family_id'] as String).isNotEmpty) {
+      return data['family_id'] as String;
+    }
+    if (!createIfMissing) return null;
+    final displayName = _auth.currentUser?.displayName ?? 'User';
+    return await createFamily(displayName);
+  }
   
   // ==================== FAMILIES ====================
   

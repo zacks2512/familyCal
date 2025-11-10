@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'config/app_config.dart';
 import 'data/mock_data.dart';
+import 'data/firestore_state_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
@@ -11,62 +13,68 @@ class FamilyCalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => createMockState(),
-      child: Builder(
-        builder: (context) {
-          final base = ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF1A73E8),
-              brightness: Brightness.light,
-            ),
-          );
-          final colorScheme = base.colorScheme;
-          return MaterialApp(
-            title: 'FamilyCal',
-            debugShowCheckedModeBanner: false,
-            theme: base.copyWith(
-              scaffoldBackgroundColor: Colors.white,
-              appBarTheme: base.appBarTheme.copyWith(
-                backgroundColor: Colors.white,
-                foregroundColor: colorScheme.onSurface,
-                elevation: 0,
-                titleTextStyle: base.textTheme.titleLarge?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              navigationBarTheme: base.navigationBarTheme.copyWith(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                indicatorColor: colorScheme.primary.withOpacity(0.12),
-                labelTextStyle: MaterialStateProperty.resolveWith(
-                  (states) => base.textTheme.labelMedium?.copyWith(
-                    fontWeight: states.contains(MaterialState.selected)
-                        ? FontWeight.w600
-                        : FontWeight.w500,
-                  ),
-                ),
-                iconTheme: MaterialStateProperty.resolveWith(
-                  (states) => IconThemeData(
-                    color: states.contains(MaterialState.selected)
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
-              snackBarTheme: base.snackBarTheme.copyWith(
-                backgroundColor: colorScheme.primary,
-                contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
+    final app = Builder(
+      builder: (context) {
+        final base = ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1A73E8),
+            brightness: Brightness.light,
+          ),
+        );
+        final colorScheme = base.colorScheme;
+        return MaterialApp(
+          title: 'FamilyCal',
+          debugShowCheckedModeBanner: false,
+          theme: base.copyWith(
+            scaffoldBackgroundColor: Colors.white,
+            appBarTheme: base.appBarTheme.copyWith(
+              backgroundColor: Colors.white,
+              foregroundColor: colorScheme.onSurface,
+              elevation: 0,
+              titleTextStyle: base.textTheme.titleLarge?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            home: const HomeShell(),
-          );
-        },
-      ),
+            navigationBarTheme: base.navigationBarTheme.copyWith(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              indicatorColor: colorScheme.primary.withOpacity(0.12),
+              labelTextStyle: MaterialStateProperty.resolveWith(
+                (states) => base.textTheme.labelMedium?.copyWith(
+                  fontWeight: states.contains(MaterialState.selected)
+                      ? FontWeight.w600
+                      : FontWeight.w500,
+                ),
+              ),
+              iconTheme: MaterialStateProperty.resolveWith(
+                (states) => IconThemeData(
+                  color: states.contains(MaterialState.selected)
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
+            snackBarTheme: base.snackBarTheme.copyWith(
+              backgroundColor: colorScheme.primary,
+              contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
+          ),
+          home: const HomeShell(),
+        );
+      },
     );
+
+    if (AppConfig.useMockData) {
+      return ChangeNotifierProvider(
+        create: (_) => createMockState(),
+        child: app,
+      );
+    } else {
+      return FirestoreAppStateProvider(child: app);
+    }
   }
 }
 
