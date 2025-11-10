@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
-import '../../services/mock_auth_service.dart';
+import '../../services/firebase_auth_service.dart';
 import '../onboarding/family_setup_flow.dart';
 import '../../app.dart';
 
@@ -15,27 +16,53 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   bool _isLoading = false;
+  final _authService = FirebaseAuthService();
 
-  Future<void> _handleSocialSignIn(Future<bool> Function() signInMethod, String provider) async {
+  Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
     try {
-      final success = await signInMethod();
+      final userCredential = await _authService.signInWithGoogle();
       
       if (!mounted) return;
       
-      if (success) {
-        // Navigate to family setup flow after social sign-in (new registration)
+      // Navigate to family setup flow after social sign-in (new registration)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      // If Firebase already considers the user signed in, proceed as success
+      if (FirebaseAuth.instance.currentUser != null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
           (route) => false,
         );
-      }
-    } catch (e) {
-      if (mounted) {
+      } else if (mounted) {
+        String message = 'Google Sign-In failed';
+        if (e.code == 'ERROR_ABORTED_BY_USER') {
+          message = 'Sign-in cancelled';
+        } else {
+          message = 'Google Sign-In failed: ${e.message}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$provider Sign-In failed: ${e.toString()}'),
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } catch (e) {
+      // If Firebase already considers the user signed in, proceed as success
+      if (FirebaseAuth.instance.currentUser != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
+          (route) => false,
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-In failed: ${e.toString()}'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -109,7 +136,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => RegisterOptionsScreen(
-                                onSocialSignIn: _handleSocialSignIn,
+                                onGoogleSignIn: _handleGoogleSignIn,
                               ),
                             ),
                           );
@@ -175,10 +202,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 class RegisterOptionsScreen extends StatelessWidget {
   const RegisterOptionsScreen({
     super.key,
-    required this.onSocialSignIn,
+    required this.onGoogleSignIn,
   });
 
-  final Future<void> Function(Future<bool> Function(), String) onSocialSignIn;
+  final Future<void> Function() onGoogleSignIn;
 
   @override
   Widget build(BuildContext context) {
@@ -221,21 +248,22 @@ class RegisterOptionsScreen extends StatelessWidget {
               _SocialButton(
                 icon: Icons.g_mobiledata,
                 label: 'Continue with Google',
-                onPressed: () => onSocialSignIn(
-                  MockAuthService.signInWithGoogle,
-                  'Google',
-                ),
+                onPressed: onGoogleSignIn,
               ),
               
               const SizedBox(height: 12),
               
+              // Facebook Sign-In (not yet implemented)
               _SocialButton(
                 icon: Icons.facebook,
                 label: 'Continue with Facebook',
-                onPressed: () => onSocialSignIn(
-                  MockAuthService.signInWithFacebook,
-                  'Facebook',
-                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Facebook Sign-In coming soon!'),
+                    ),
+                  );
+                },
               ),
               
               const SizedBox(height: 24),
@@ -300,27 +328,53 @@ class LoginOptionsScreen extends StatefulWidget {
 
 class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
   bool _isLoading = false;
+  final _authService = FirebaseAuthService();
 
-  Future<void> _handleSocialLogin(Future<bool> Function() signInMethod, String provider) async {
+  Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
 
     try {
-      final success = await signInMethod();
+      final userCredential = await _authService.signInWithGoogle();
       
       if (!mounted) return;
       
-      if (success) {
-        // Login goes directly to calendar app (user already has family setup)
+      // Login goes directly to calendar app (user already has family setup)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      // If Firebase already considers the user signed in, proceed as success
+      if (FirebaseAuth.instance.currentUser != null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const FamilyCalApp()),
           (route) => false,
         );
-      }
-    } catch (e) {
-      if (mounted) {
+      } else if (mounted) {
+        String message = 'Google Login failed';
+        if (e.code == 'ERROR_ABORTED_BY_USER') {
+          message = 'Login cancelled';
+        } else {
+          message = 'Google Login failed: ${e.message}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$provider Login failed: ${e.toString()}'),
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } catch (e) {
+      // If Firebase already considers the user signed in, proceed as success
+      if (FirebaseAuth.instance.currentUser != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+          (route) => false,
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Login failed: ${e.toString()}'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -371,25 +425,24 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
               _SocialButton(
                 icon: Icons.g_mobiledata,
                 label: 'Continue with Google',
-                onPressed: _isLoading
-                    ? null
-                    : () => _handleSocialLogin(
-                        MockAuthService.signInWithGoogle,
-                        'Google',
-                      ),
+                onPressed: _isLoading ? null : _handleGoogleLogin,
               ),
               
               const SizedBox(height: 12),
               
+              // Facebook Sign-In (not yet implemented)
               _SocialButton(
                 icon: Icons.facebook,
                 label: 'Continue with Facebook',
                 onPressed: _isLoading
                     ? null
-                    : () => _handleSocialLogin(
-                        MockAuthService.signInWithFacebook,
-                        'Facebook',
-                      ),
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Facebook Sign-In coming soon!'),
+                          ),
+                        );
+                      },
               ),
               
               const SizedBox(height: 24),

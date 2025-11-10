@@ -43,6 +43,7 @@ dependencies:
   firebase_messaging: ^14.7.9
   cloud_firestore: ^4.13.6
   cloud_functions: ^4.5.12
+  google_sign_in: ^6.2.1
   # TODO: Re-enable after fixing compatibility issue with Gradle 8.5 + SDK 35
   # flutter_local_notifications: ^16.2.0
   

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/entities.dart';
 import '../state/app_state.dart';
-import '../services/mock_auth_service.dart';
+import '../services/firebase_auth_service.dart';
 import 'auth/welcome_screen.dart';
 import 'log_screen.dart';
 
@@ -16,6 +16,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _authService = FirebaseAuthService();
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
@@ -119,8 +121,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icons.person_outline,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  title: Text(MockAuthService.currentUserName ?? 'User'),
-                  subtitle: const Text('Logged in'),
+                  title: Text(_authService.currentUserDisplayName ?? 
+                              _authService.currentUserEmail ?? 
+                              'User'),
+                  subtitle: Text(_authService.currentUserEmail ?? 'Logged in'),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -167,13 +171,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true && context.mounted) {
-      await MockAuthService.signOut();
-      
-      if (context.mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-          (route) => false,
-        );
+      try {
+        await _authService.signOut();
+        
+        if (context.mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sign out failed: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       }
     }
   }

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'app.dart';
 import 'screens/auth/welcome_screen.dart';
-import 'services/mock_auth_service.dart';
+import 'services/firebase_auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // TODO: Initialize Firebase when ready
-  // await Firebase.initializeApp();
+  // Initialize Firebase
+  await Firebase.initializeApp();
   
   runApp(const FamilyCalRoot());
 }
@@ -40,13 +41,30 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check if user is logged in
-    final isLoggedIn = MockAuthService.isLoggedIn;
+    final authService = FirebaseAuthService();
     
-    if (isLoggedIn) {
-      return const FamilyCalApp();
-    } else {
-      return const WelcomeScreen();
-    }
+    // Listen to auth state changes
+    return StreamBuilder(
+      stream: authService.authStateChanges,
+      builder: (context, snapshot) {
+        // Show loading while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        // Check if user is logged in
+        final user = snapshot.data;
+        
+        if (user != null) {
+          return const FamilyCalApp();
+        } else {
+          return const WelcomeScreen();
+        }
+      },
+    );
   }
 }
