@@ -125,11 +125,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               const Spacer(flex: 2),
               
-              // Register Button
+              // Register Button (Primary - Filled)
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: OutlinedButton(
+                child: FilledButton(
                   onPressed: _isLoading
                       ? null
                       : () {
@@ -153,11 +153,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               const SizedBox(height: 16),
               
-              // Login Button (Blue)
+              // Login Button (Secondary - Outlined)
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: FilledButton(
+                child: OutlinedButton(
                   onPressed: _isLoading
                       ? null
                       : () {
