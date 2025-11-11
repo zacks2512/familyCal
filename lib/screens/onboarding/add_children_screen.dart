@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../app.dart';
+import '../../config/app_config.dart';
+import '../../services/firebase_repository.dart';
 
 /// Third step: Add children
 class AddChildrenScreen extends StatefulWidget {
@@ -62,10 +64,33 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
       if (confirmed != true) return;
     }
 
-    // TODO: Save all family data to database/state
-    // - Family name: widget.familyName
-    // - Participants: widget.participants
-    // - Children: _children
+    // Save children so they appear in the app after setup
+    try {
+      if (!AppConfig.useMockData) {
+        final repo = FirebaseRepository();
+        final familyId = await repo.getCurrentUserFamilyId(createIfMissing: true);
+        if (familyId != null) {
+          for (final c in _children) {
+            await repo.addChild(
+              familyId: familyId,
+              name: c.name,
+              color: '#${c.color.value.toRadixString(16).substring(2)}',
+              birthDate: null,
+              allergies: null,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save children: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
 
     if (!mounted) return;
 
@@ -422,43 +447,30 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                         label: label,
                         button: true,
                         selected: isSelected,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            InkWell(
-                              onTap: () => setState(() => _selectedColor = color),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                  border: isSelected
-                                      ? Border.all(
-                                          color: colorScheme.onSurface,
-                                          width: 3,
-                                        )
-                                      : null,
-                                ),
-                                child: isSelected
-                                    ? const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 20,
-                                      )
-                                    : null,
-                              ),
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedColor = color),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: colorScheme.onSurface,
+                                      width: 3,
+                                    )
+                                  : null,
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              label,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  )
+                                : null,
+                          ),
                         ),
                       ),
                     );
