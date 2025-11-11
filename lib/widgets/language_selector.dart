@@ -102,53 +102,83 @@ class LanguageSettingsTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
-        _showLanguageDialog(context);
+        showLanguageDialog(context);
       },
     );
   }
+}
 
-  void _showLanguageDialog(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+/// Compact language action button for AppBars
+class LanguageActionButton extends StatelessWidget {
+  const LanguageActionButton({super.key});
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_getLanguageText('language', context)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: Text(_getLanguageText('hebrew', context)),
-              value: 'he',
-              groupValue: localeProvider.locale.languageCode,
-              onChanged: (value) {
-                if (value != null) {
-                  localeProvider.setLocale(Locale(value));
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: Text(_getLanguageText('english', context)),
-              value: 'en',
-              groupValue: localeProvider.locale.languageCode,
-              onChanged: (value) {
-                if (value != null) {
-                  localeProvider.setLocale(Locale(value));
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(_getLanguageText('cancel', context)),
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: AppLocalizations.of(context)?.language ?? 'Language',
+      icon: const Icon(Icons.language),
+      onPressed: () => showLanguageDialog(context),
+    );
+  }
+}
+
+/// Shared dialog to switch app language
+void showLanguageDialog(BuildContext context) {
+  final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+  final l10n = AppLocalizations.of(context);
+  String t(String key, String fallback) {
+    switch (key) {
+      case 'language':
+        return l10n?.language ?? fallback;
+      case 'hebrew':
+        return l10n?.hebrew ?? fallback;
+      case 'english':
+        return l10n?.english ?? fallback;
+      case 'cancel':
+        return 'Cancel';
+      default:
+        return fallback;
+    }
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(t('language', 'Language')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RadioListTile<String>(
+            title: Text(t('hebrew', 'עברית')),
+            value: 'he',
+            groupValue: localeProvider.locale.languageCode,
+            onChanged: (value) {
+              if (value != null) {
+                localeProvider.setLocale(Locale(value));
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          RadioListTile<String>(
+            title: Text(t('english', 'English')),
+            value: 'en',
+            groupValue: localeProvider.locale.languageCode,
+            onChanged: (value) {
+              if (value != null) {
+                localeProvider.setLocale(Locale(value));
+                Navigator.of(context).pop();
+              }
+            },
           ),
         ],
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(t('cancel', 'Cancel')),
+        ),
+      ],
+    ),
+  );
 }
 

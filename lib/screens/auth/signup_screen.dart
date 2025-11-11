@@ -144,6 +144,7 @@ class _SignupScreenState extends State<SignupScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: const [LanguageActionButton()],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -279,11 +280,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 
                 const SizedBox(height: 24),
-                
-                // Language Selector
-                const LanguageSelector(),
-                
-                const SizedBox(height: 32),
                 
                 // Info Box
                 Container(

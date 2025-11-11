@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider for managing app locale/language
 class LocaleProvider with ChangeNotifier {
-  Locale _locale = const Locale('he'); // Default to Hebrew
+  Locale _locale = const Locale('en'); // Default to English
   static const String _localeKey = 'app_locale';
 
   Locale get locale => _locale;

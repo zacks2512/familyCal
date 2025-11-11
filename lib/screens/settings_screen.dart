@@ -243,12 +243,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final nameController = TextEditingController();
     final formKey = GlobalKey<FormState>();
     Color selectedColor = Colors.pink.shade300;
+    final l10n = AppLocalizations.of(context);
 
     showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add child'),
+          title: Text(l10n?.addChild ?? 'Add child'),
           content: Form(
             key: formKey,
             child: Column(
@@ -256,35 +257,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'Enter child\'s name',
+                  decoration: InputDecoration(
+                    labelText: l10n?.fullName ?? 'Name',
+                    hintText: l10n?.enterTheirName ?? 'Enter child\'s name',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a name';
+                      return l10n?.pleaseEnterAName ?? 'Please enter a name';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Choose color:'),
+                  child: Text('${l10n?.chooseAColor ?? 'Choose a color'}:'),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    {'label': 'Pink', 'color': Colors.pink.shade300},
-                    {'label': 'Orange', 'color': Colors.orange.shade400},
-                    {'label': 'Blue', 'color': Colors.blue.shade400},
-                    {'label': 'Green', 'color': Colors.green.shade400},
-                    {'label': 'Purple', 'color': Colors.purple.shade400},
-                    {'label': 'Red', 'color': Colors.red.shade400},
-                    {'label': 'Teal', 'color': Colors.teal.shade400},
-                    {'label': 'Amber', 'color': Colors.amber.shade400},
+                    {'label': l10n?.colorPink ?? 'Pink', 'color': Colors.pink.shade300},
+                    {'label': l10n?.colorOrange ?? 'Orange', 'color': Colors.orange.shade400},
+                    {'label': l10n?.colorBlue ?? 'Blue', 'color': Colors.blue.shade400},
+                    {'label': l10n?.colorGreen ?? 'Green', 'color': Colors.green.shade400},
+                    {'label': l10n?.colorPurple ?? 'Purple', 'color': Colors.purple.shade400},
+                    {'label': l10n?.colorRed ?? 'Red', 'color': Colors.red.shade400},
+                    {'label': l10n?.colorTeal ?? 'Teal', 'color': Colors.teal.shade400},
+                    {'label': l10n?.colorAmber ?? 'Amber', 'color': Colors.amber.shade400},
                   ].map((entry) {
                     final color = entry['color'] as Color;
                     final label = entry['label'] as String;
@@ -292,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     return Tooltip(
                       message: label,
                       child: Semantics(
-                        label: '$label color',
+                        label: label,
                         button: true,
                         selected: isSelected,
                         child: InkWell(
@@ -322,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n?.cancel ?? 'Cancel'),
             ),
             FilledButton(
               onPressed: () {
@@ -357,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 }();
               },
-              child: const Text('Add'),
+              child: Text(l10n?.addChild ?? 'Add'),
             ),
           ],
         ),

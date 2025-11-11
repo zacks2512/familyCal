@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'add_children_screen.dart';
 
@@ -54,10 +55,11 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Family Members'),
+        title: Text(l10n?.addFamilyMembersTitle ?? 'Add Family Members'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -91,7 +93,7 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
               
               // Header
               Text(
-                'Invite Family Members',
+                l10n?.inviteFamilyMembersTitle ?? 'Invite Family Members',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -100,7 +102,8 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
               const SizedBox(height: 8),
               
               Text(
-                'Send invite links to your partner, grandparents, or anyone who helps',
+                l10n?.inviteFamilyMembersSubtitle ??
+                    'Send invite links to your partner, grandparents, or anyone who helps',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -132,7 +135,7 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
                 OutlinedButton.icon(
                   onPressed: _sendInvite,
                   icon: const Icon(Icons.send),
-                  label: const Text('Send Another Invite'),
+                  label: Text(l10n?.sendAnotherInvite ?? 'Send Another Invite'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                   ),
@@ -147,7 +150,9 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
                 child: FilledButton(
                   onPressed: _handleContinue,
                   child: Text(
-                    _invitesSent.isEmpty ? 'Skip for Now' : 'Continue',
+                    _invitesSent.isEmpty
+                        ? (l10n?.skipForNow ?? 'Skip for Now')
+                        : (l10n?.continueButton ?? 'Continue'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -172,6 +177,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Center(
       child: Column(
@@ -184,12 +190,13 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No invites sent yet',
+            l10n?.noInvitesYetTitle ?? 'No invites sent yet',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Send links to people who will help\ncoordinate your family schedules',
+            l10n?.noInvitesYetSubtitle ??
+                'Send links to people who will help\ncoordinate your family schedules',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -199,7 +206,7 @@ class _EmptyState extends StatelessWidget {
           FilledButton.icon(
             onPressed: onSend,
             icon: const Icon(Icons.send),
-            label: const Text('Send Invite'),
+            label: Text(l10n?.sendInvite ?? 'Send Invite'),
           ),
         ],
       ),
@@ -220,6 +227,7 @@ class _InviteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -249,7 +257,7 @@ class _InviteCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Invite sent ✓',
+                  l10n?.inviteSent ?? 'Invite sent ✓',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.primary,
                   ),
@@ -319,9 +327,13 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Invite link copied! Share it with $contact'),
+        content: Text(
+          AppLocalizations.of(context) != null
+              ? AppLocalizations.of(context)!.inviteLinkCopied(contact)
+              : 'Invite link copied! Share it with $contact',
+        ),
         action: SnackBarAction(
-          label: 'Share',
+          label: AppLocalizations.of(context)?.share ?? 'Share',
           onPressed: () {
             // TODO: Open share dialog
           },
@@ -334,6 +346,7 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Container(
       padding: EdgeInsets.only(
@@ -367,7 +380,9 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                 const SizedBox(height: 24),
                 
                 Text(
-                  'Send Invite to Join ${widget.familyName}',
+                  l10n != null
+                      ? l10n.sendInviteToJoinTitle(widget.familyName)
+                      : 'Send Invite to Join ${widget.familyName}',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -379,8 +394,10 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                 TextFormField(
                   controller: _contactController,
                   decoration: InputDecoration(
-                    labelText: 'Email or Phone',
-                    hintText: _isEmail ? 'their@email.com' : '+1 (555) 123-4567',
+                    labelText: l10n?.emailOrPhone ?? 'Email or Phone',
+                    hintText: _isEmail
+                        ? (l10n?.emailHintGeneric ?? 'their@email.com')
+                        : (l10n?.phoneHintGeneric ?? '+1 (555) 123-4567'),
                     prefixIcon: Icon(_isEmail ? Icons.email_outlined : Icons.phone_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -390,7 +407,9 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                       onPressed: () {
                         setState(() => _isEmail = !_isEmail);
                       },
-                      tooltip: _isEmail ? 'Switch to phone' : 'Switch to email',
+                      tooltip: _isEmail
+                          ? (l10n?.switchToPhone ?? 'Switch to phone')
+                          : (l10n?.switchToEmail ?? 'Switch to email'),
                     ),
                   ),
                   keyboardType: _isEmail 
@@ -398,7 +417,9 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                       : TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter ${_isEmail ? "an email" : "a phone number"}';
+                      return _isEmail
+                          ? (AppLocalizations.of(context)?.pleaseEnterEmail ?? 'Please enter your email')
+                          : (AppLocalizations.of(context)?.pleaseEnterPhoneNumber ?? 'Please enter your phone number');
                     }
                     return null;
                   },
@@ -424,7 +445,7 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'We\'ll create an invite link you can share',
+                          l10n?.inviteInfo ?? 'We\'ll create an invite link you can share',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurface,
                           ),
@@ -443,12 +464,9 @@ class _SendInviteSheetState extends State<_SendInviteSheet> {
                   child: FilledButton.icon(
                     onPressed: _handleSend,
                     icon: const Icon(Icons.send),
-                    label: const Text(
-                      'Create & Copy Link',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    label: Text(
+                      l10n?.createAndCopyLink ?? 'Create & Copy Link',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -479,7 +497,9 @@ class _ProgressIndicator extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Step $currentStep of $totalSteps',
+          AppLocalizations.of(context) != null
+              ? AppLocalizations.of(context)!.stepXOfY(currentStep, totalSteps)
+              : 'Step $currentStep of $totalSteps',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

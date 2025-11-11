@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import '../../services/firebase_auth_service.dart';
 import '../onboarding/family_setup_flow.dart';
 import '../../app.dart';
+import '../../widgets/language_selector.dart';
 
 /// Welcome screen - first screen users see
 class WelcomeScreen extends StatefulWidget {
@@ -76,6 +78,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Scaffold(
       body: SafeArea(
@@ -104,7 +107,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               // App Name
               Text(
-                'FamilyCal',
+                (AppLocalizations.of(context)?.appName) ?? 'FamilyCal',
                 style: theme.textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
@@ -115,7 +118,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               // Tagline
               Text(
-                'Coordinate family schedules.\nNever miss a drop-off or pickup.',
+                (AppLocalizations.of(context)?.appTagline) ??
+                    'Coordinate family schedules.\nNever miss a drop-off or pickup.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
@@ -141,12 +145,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           );
                         },
-                  child: const Text(
-                    'Register',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Text(
+                    (AppLocalizations.of(context)?.register) ?? 'Register',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -167,12 +168,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           );
                         },
-                  child: const Text(
-                    'Log In',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Text(
+                    (AppLocalizations.of(context)?.login) ?? 'Log In',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -181,7 +179,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               
               // Terms & Privacy
               Text(
-                'By continuing, you agree to our Terms of Service\nand Privacy Policy',
+                (AppLocalizations.of(context)?.termsAndPrivacy) ??
+                    'By continuing, you agree to our Terms of Service\nand Privacy Policy',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
@@ -218,6 +217,7 @@ class RegisterOptionsScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: const [LanguageActionButton()],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -229,14 +229,14 @@ class RegisterOptionsScreen extends StatelessWidget {
             children: [
               // Header
               Text(
-                'Register',
+                (AppLocalizations.of(context)?.registerTitle) ?? 'Register',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Choose how you\'d like to register',
+                (AppLocalizations.of(context)?.registerSubtitle) ?? 'Choose how you\'d like to register',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -247,7 +247,7 @@ class RegisterOptionsScreen extends StatelessWidget {
               // Social Options
               _SocialButton(
                 icon: Icons.g_mobiledata,
-                label: 'Continue with Google',
+                label: (AppLocalizations.of(context)?.continueWithGoogle) ?? 'Continue with Google',
                 onPressed: onGoogleSignIn,
               ),
               
@@ -256,11 +256,11 @@ class RegisterOptionsScreen extends StatelessWidget {
               // Facebook Sign-In (not yet implemented)
               _SocialButton(
                 icon: Icons.facebook,
-                label: 'Continue with Facebook',
+                label: (AppLocalizations.of(context)?.continueWithFacebook) ?? 'Continue with Facebook',
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Facebook Sign-In coming soon!'),
+                    SnackBar(
+                      content: Text((AppLocalizations.of(context)?.facebookComingSoon) ?? 'Facebook Sign-In coming soon!'),
                     ),
                   );
                 },
@@ -275,7 +275,7 @@ class RegisterOptionsScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'or',
+                      (AppLocalizations.of(context)?.orDivider) ?? 'or',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -300,12 +300,9 @@ class RegisterOptionsScreen extends StatelessWidget {
                   minimumSize: const Size(double.infinity, 56),
                 ),
                 icon: const Icon(Icons.email_outlined),
-                label: const Text(
-                  'Register with Email or Phone',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                label: Text(
+                  (AppLocalizations.of(context)?.registerWithEmailPhone) ?? 'Register with Email or Phone',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               
@@ -395,6 +392,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: const [LanguageActionButton()],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -406,14 +404,14 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
             children: [
               // Header
               Text(
-                'Log In',
+                (AppLocalizations.of(context)?.loginTitle) ?? 'Log In',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Choose how you\'d like to log in',
+                (AppLocalizations.of(context)?.loginSubtitle) ?? 'Choose how you\'d like to log in',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -424,7 +422,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
               // Social Options
               _SocialButton(
                 icon: Icons.g_mobiledata,
-                label: 'Continue with Google',
+                label: (AppLocalizations.of(context)?.continueWithGoogle) ?? 'Continue with Google',
                 onPressed: _isLoading ? null : _handleGoogleLogin,
               ),
               
@@ -433,13 +431,13 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
               // Facebook Sign-In (not yet implemented)
               _SocialButton(
                 icon: Icons.facebook,
-                label: 'Continue with Facebook',
+                label: (AppLocalizations.of(context)?.continueWithFacebook) ?? 'Continue with Facebook',
                 onPressed: _isLoading
                     ? null
                     : () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Facebook Sign-In coming soon!'),
+                          SnackBar(
+                            content: Text((AppLocalizations.of(context)?.facebookComingSoon) ?? 'Facebook Sign-In coming soon!'),
                           ),
                         );
                       },
@@ -454,7 +452,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'or',
+                      (AppLocalizations.of(context)?.orDivider) ?? 'or',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -487,12 +485,9 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.email_outlined),
-                label: const Text(
-                  'Log In with Email or Phone',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                label: Text(
+                  (AppLocalizations.of(context)?.loginWithEmailPhone) ?? 'Log In with Email or Phone',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               
