@@ -277,31 +277,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Colors.pink.shade300,
-                    Colors.orange.shade400,
-                    Colors.blue.shade400,
-                    Colors.green.shade400,
-                    Colors.purple.shade400,
-                    Colors.red.shade400,
-                    Colors.teal.shade400,
-                    Colors.amber.shade400,
-                  ].map((color) {
+                    {'label': 'Pink', 'color': Colors.pink.shade300},
+                    {'label': 'Orange', 'color': Colors.orange.shade400},
+                    {'label': 'Blue', 'color': Colors.blue.shade400},
+                    {'label': 'Green', 'color': Colors.green.shade400},
+                    {'label': 'Purple', 'color': Colors.purple.shade400},
+                    {'label': 'Red', 'color': Colors.red.shade400},
+                    {'label': 'Teal', 'color': Colors.teal.shade400},
+                    {'label': 'Amber', 'color': Colors.amber.shade400},
+                  ].map((entry) {
+                    final color = entry['color'] as Color;
+                    final label = entry['label'] as String;
                     final isSelected = color == selectedColor;
-                    return InkWell(
-                      onTap: () => setDialogState(() => selectedColor = color),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(color: Colors.black, width: 3)
-                              : null,
+                    return Tooltip(
+                      message: label,
+                      child: Semantics(
+                        label: '$label color',
+                        button: true,
+                        selected: isSelected,
+                        child: InkWell(
+                          onTap: () => setDialogState(() => selectedColor = color),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.black, width: 3)
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check, color: Colors.white)
+                                : null,
+                          ),
                         ),
-                        child: isSelected
-                            ? const Icon(Icons.check, color: Colors.white)
-                            : null,
                       ),
                     );
                   }).toList(),
