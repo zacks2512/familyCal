@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../models/entities.dart';
@@ -528,18 +529,19 @@ class _CalendarHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final segmented = SegmentedButton<CalendarViewMode>(
+    final l10n = AppLocalizations.of(context)!;
+    final localizedSegments = [
+      ButtonSegment(value: CalendarViewMode.day, label: Text(l10n.day)),
+      ButtonSegment(value: CalendarViewMode.week, label: Text(l10n.week)),
+      ButtonSegment(value: CalendarViewMode.month, label: Text(l10n.month)),
+    ];
+    final segmentedLocalized = SegmentedButton<CalendarViewMode>(
       style: ButtonStyle(
-        padding: MaterialStateProperty.all(
-          const EdgeInsets.symmetric(horizontal: 12),
-        ),
+        padding:
+            MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12)),
         visualDensity: VisualDensity.comfortable,
       ),
-      segments: const [
-        ButtonSegment(value: CalendarViewMode.day, label: Text('Day')),
-        ButtonSegment(value: CalendarViewMode.week, label: Text('Week')),
-        ButtonSegment(value: CalendarViewMode.month, label: Text('Month')),
-      ],
+      segments: localizedSegments,
       selected: {viewMode},
       onSelectionChanged: (value) => onViewModeChanged(value.first),
     );
@@ -587,7 +589,7 @@ class _CalendarHeader extends StatelessWidget {
         ),
         TextButton(
           onPressed: onToday,
-          child: const Text('Today'),
+          child: Text(l10n.today),
         ),
       ],
     );
@@ -598,9 +600,10 @@ class _CalendarHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Replace with localized segmented
             navigationRow,
             const SizedBox(height: 12),
-            segmented,
+            segmentedLocalized,
           ],
         ),
       );
@@ -616,7 +619,7 @@ class _CalendarHeader extends StatelessWidget {
         runSpacing: 12,
         children: [
           SizedBox(width: 280, child: navigationRow),
-          segmented,
+          segmentedLocalized,
         ],
       ),
     );

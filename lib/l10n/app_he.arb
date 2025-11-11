@@ -1,0 +1,80 @@
+{
+  "@@locale": "he",
+  "appName": "FamilyCal",
+  "appTagline": "תיאום לוחות זמנים משפחתיים.\nלעולם לא תפספסו הורדה או איסוף.",
+  
+  "register": "הרשמה",
+  "login": "התחברות",
+  "termsAndPrivacy": "בהמשך, אתם מסכימים לתנאי השירות ומדיניות הפרטיות שלנו",
+  
+  "registerTitle": "הרשמה",
+  "registerSubtitle": "בחרו כיצד תרצו להירשם",
+  "loginTitle": "התחברות",
+  "loginSubtitle": "בחרו כיצד תרצו להתחבר",
+  
+  "continueWithGoogle": "המשך עם Google",
+  "continueWithFacebook": "המשך עם Facebook",
+  "orDivider": "או",
+  "registerWithEmailPhone": "הרשמה באמצעות אימייל או טלפון",
+  "loginWithEmailPhone": "התחברות באמצעות אימייל או טלפון",
+  
+  "facebookComingSoon": "התחברות עם Facebook בקרוב!",
+  
+  "signupTitle": "יצירת חשבון",
+  "signupSubtitle": "הזינו את הפרטים שלכם כדי להתחיל",
+  "fullName": "שם מלא",
+  "enterYourName": "הזינו את שמכם",
+  "pleaseEnterYourName": "אנא הזינו את שמכם",
+  
+  "contactMethod": "שיטת יצירת קשר",
+  "email": "אימייל",
+  "phone": "טלפון",
+  "emailAddress": "כתובת אימייל",
+  "enterYourEmail": "הזינו את האימייל שלכם",
+  "pleaseEnterEmail": "אנא הזינו את האימייל שלכם",
+  "pleaseEnterValidEmail": "אנא הזינו כתובת אימייל תקינה",
+  "phoneNumber": "מספר טלפון",
+  "enterPhoneNumber": "הזינו מספר טלפון",
+  "pleaseEnterPhoneNumber": "אנא הזינו את מספר הטלפון שלכם",
+  "pleaseEnterValidPhoneNumber": "אנא הזינו מספר טלפון תקין",
+  
+  "language": "שפה",
+  "hebrew": "עברית",
+  "english": "English",
+  
+  "continueButton": "המשך",
+  "alreadyHaveAccount": "כבר יש לכם חשבון?",
+  
+  "verificationTitle": "אימות {method} שלכם",
+  "verificationCodeSent": "שלחנו קוד בן 6 ספרות אל",
+  "enterCodeBelow": "הזינו את הקוד למטה כדי להמשיך",
+  "verificationCode": "קוד אימות",
+  "enterCode": "הזינו קוד בן 6 ספרות",
+  "pleaseEnterCode": "אנא הזינו את קוד האימות",
+  "codeMustBe6Digits": "הקוד חייב להיות בן 6 ספרות",
+  "verify": "אמת",
+  "didntReceiveCode": "לא קיבלתם את הקוד?",
+  "resend": "שלח שוב",
+  
+  "calendar": "לוח שנה",
+  "settings": "הגדרות",
+  
+  "settingsTitle": "הגדרות",
+  "account": "חשבון",
+  "signOut": "התנתק",
+  "children": "ילדים",
+  "addChild": "הוסף ילד",
+  "familyMembers": "בני משפחה",
+  "addMember": "הוסף חבר",
+  "activityLog": "יומן פעילות",
+  "viewActivityLog": "צפה ביומן פעילות",
+  
+  "day": "יום",
+  "week": "שבוע",
+  "month": "חודש",
+  "today": "היום",
+  
+  "familySetupTitle": "בואו נגדיר את המשפחה שלכם",
+  "stepXOfY": "שלב {current} מתוך {total}"
+}
+

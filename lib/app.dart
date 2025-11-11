@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'config/app_config.dart';
@@ -7,6 +8,8 @@ import 'data/firestore_state_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
+import 'providers/locale_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class FamilyCalApp extends StatelessWidget {
   const FamilyCalApp({super.key});
@@ -23,9 +26,22 @@ class FamilyCalApp extends StatelessWidget {
           ),
         );
         final colorScheme = base.colorScheme;
+        final localeProvider = Provider.of<LocaleProvider>(context);
         return MaterialApp(
           title: 'FamilyCal',
           debugShowCheckedModeBanner: false,
+          // Localization (mirrors main.dart)
+          locale: localeProvider.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('he'),
+            Locale('en'),
+          ],
           theme: base.copyWith(
             scaffoldBackgroundColor: Colors.white,
             appBarTheme: base.appBarTheme.copyWith(
@@ -97,17 +113,18 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final destinations = [
       _NavDestination(
         icon: Icons.calendar_view_day_outlined,
         selectedIcon: Icons.calendar_month,
-        label: 'Calendar',
+        label: l10n?.calendar ?? 'Calendar',
         page: const CalendarScreen(),
       ),
       _NavDestination(
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,
-        label: 'Settings',
+        label: l10n?.settings ?? 'Settings',
         page: const SettingsScreen(),
       ),
     ];

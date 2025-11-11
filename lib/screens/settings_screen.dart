@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../models/entities.dart';
 import '../state/app_state.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firebase_repository.dart';
 import '../config/app_config.dart';
+import '../widgets/language_selector.dart';
+import '../providers/locale_provider.dart';
 import 'auth/welcome_screen.dart';
 import 'log_screen.dart';
 
@@ -20,17 +23,53 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _authService = FirebaseAuthService();
 
+  // Helper to get localized strings with fallback
+  String _getString(String key, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
+    final fallbackStrings = {
+      'settingsTitle': 'Settings',
+      'children': 'Children',
+      'addChild': 'Add Child',
+      'familyMembers': 'Family Members',
+      'addMember': 'Add Member',
+      'activityLog': 'Activity Log',
+      'viewActivityLog': 'View Activity Log',
+      'account': 'Account',
+      'signOut': 'Sign Out',
+    };
+    
+    if (l10n == null) {
+      return fallbackStrings[key] ?? key;
+    }
+    
+    switch (key) {
+      case 'settingsTitle': return l10n.settingsTitle;
+      case 'children': return l10n.children;
+      case 'addChild': return l10n.addChild;
+      case 'familyMembers': return l10n.familyMembers;
+      case 'addMember': return l10n.addMember;
+      case 'activityLog': return l10n.activityLog;
+      case 'viewActivityLog': return l10n.viewActivityLog;
+      case 'account': return l10n.account;
+      case 'signOut': return l10n.signOut;
+      default: return fallbackStrings[key] ?? key;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
+    // Listen to locale changes to rebuild when language switches
+    context.watch<LocaleProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(_getString('settingsTitle', context))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           // CHILDREN (with color picker)
-          const _SectionHeader(title: 'Children'),
+          _SectionHeader(title: _getString('children', context)),
           Card(
             child: Column(
               children: [
@@ -54,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.add_circle_outline),
-                  title: const Text('Add child'),
+                  title: Text(_getString('addChild', context)),
                   onTap: () => _showAddChildDialog(context, state),
                 ),
               ],
@@ -64,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // FAMILY MEMBERS (merged) + invite option
-          const _SectionHeader(title: 'Family members'),
+          _SectionHeader(title: _getString('familyMembers', context)),
           Card(
             child: Column(
               children: [
@@ -85,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.person_add_outlined),
-                  title: const Text('Add / Invite member'),
+                  title: Text(_getString('addMember', context)),
                   onTap: () => _showAddOrInviteMemberDialog(context, state),
                 ),
               ],
@@ -95,12 +134,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // EXTRA
-          const _SectionHeader(title: 'Extra'),
+          _SectionHeader(title: _getString('activityLog', context)),
           Card(
             child: ListTile(
               leading: const Icon(Icons.fact_check_outlined),
-              title: const Text('Activity Log'),
-              subtitle: const Text('Review past confirmations'),
+              title: Text(_getString('activityLog', context)),
+              subtitle: Text(_getString('viewActivityLog', context)),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -114,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // ACCOUNT
-          const _SectionHeader(title: 'Account'),
+          _SectionHeader(title: _getString('account', context)),
           Card(
             child: Column(
               children: [
@@ -129,13 +168,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(_authService.currentUserEmail ?? 'Logged in'),
                 ),
                 const Divider(height: 1),
+                // Language Selector
+                const LanguageSettingsTile(),
+                const Divider(height: 1),
                 ListTile(
                   leading: Icon(
                     Icons.logout,
                     color: Theme.of(context).colorScheme.error,
                   ),
                   title: Text(
-                    'Sign Out',
+                    _getString('signOut', context),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'verification_screen.dart';
 import '../../services/mock_auth_service.dart';
+import '../../widgets/language_selector.dart';
 
 enum SignupMethod { email, phone }
 
@@ -78,10 +80,63 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
+  String _getLocalizedText(String key, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
+    // Default English fallbacks
+    final defaults = {
+      'signupTitle': 'Create Account',
+      'signupSubtitle': 'Enter your details to get started',
+      'fullName': 'Full Name',
+      'enterYourName': 'Enter your name',
+      'pleaseEnterYourName': 'Please enter your name',
+      'contactMethod': 'Contact Method',
+      'email': 'Email',
+      'phone': 'Phone',
+      'emailAddress': 'Email Address',
+      'enterYourEmail': 'Enter your email',
+      'pleaseEnterEmail': 'Please enter your email',
+      'pleaseEnterValidEmail': 'Please enter a valid email',
+      'phoneNumber': 'Phone Number',
+      'enterPhoneNumber': 'Enter phone number',
+      'pleaseEnterPhoneNumber': 'Please enter your phone number',
+      'pleaseEnterValidPhoneNumber': 'Please enter a valid phone number',
+      'continueButton': 'Continue',
+      'language': 'Language',
+    };
+    
+    if (l10n == null) {
+      return defaults[key] ?? key;
+    }
+    
+    switch (key) {
+      case 'signupTitle': return l10n.signupTitle;
+      case 'signupSubtitle': return l10n.signupSubtitle;
+      case 'fullName': return l10n.fullName;
+      case 'enterYourName': return l10n.enterYourName;
+      case 'pleaseEnterYourName': return l10n.pleaseEnterYourName;
+      case 'contactMethod': return l10n.contactMethod;
+      case 'email': return l10n.email;
+      case 'phone': return l10n.phone;
+      case 'emailAddress': return l10n.emailAddress;
+      case 'enterYourEmail': return l10n.enterYourEmail;
+      case 'pleaseEnterEmail': return l10n.pleaseEnterEmail;
+      case 'pleaseEnterValidEmail': return l10n.pleaseEnterValidEmail;
+      case 'phoneNumber': return l10n.phoneNumber;
+      case 'enterPhoneNumber': return l10n.enterPhoneNumber;
+      case 'pleaseEnterPhoneNumber': return l10n.pleaseEnterPhoneNumber;
+      case 'pleaseEnterValidPhoneNumber': return l10n.pleaseEnterValidPhoneNumber;
+      case 'continueButton': return l10n.continueButton;
+      case 'language': return l10n.language;
+      default: return defaults[key] ?? key;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -102,14 +157,14 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 // Header
                 Text(
-                  'Create Account',
+                  _getLocalizedText('signupTitle', context),
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Join FamilyCal and coordinate your family schedules',
+                  _getLocalizedText('signupSubtitle', context),
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -121,8 +176,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Full Name',
-                    hintText: 'Enter your name',
+                    labelText: _getLocalizedText('fullName', context),
+                    hintText: _getLocalizedText('enterYourName', context),
                     prefixIcon: const Icon(Icons.person_outline),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -131,7 +186,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
+                      return _getLocalizedText('pleaseEnterYourName', context);
                     }
                     return null;
                   },
@@ -140,31 +195,32 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 24),
                 
                 // Method Selector
-                Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceVariant.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
+                Text(
+                  _getLocalizedText('contactMethod', context),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: SegmentedButton<SignupMethod>(
-                    segments: const [
-                      ButtonSegment(
-                        value: SignupMethod.email,
-                        label: Text('Email'),
-                        icon: Icon(Icons.email_outlined, size: 20),
-                      ),
-                      ButtonSegment(
-                        value: SignupMethod.phone,
-                        label: Text('Phone'),
-                        icon: Icon(Icons.phone_outlined, size: 20),
-                      ),
-                    ],
-                    selected: {_method},
-                    onSelectionChanged: (Set<SignupMethod> selection) {
-                      setState(() => _method = selection.first);
-                    },
-                    style: ButtonStyle(
-                      visualDensity: VisualDensity.comfortable,
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<SignupMethod>(
+                  segments: [
+                    ButtonSegment(
+                      value: SignupMethod.email,
+                      label: Text(_getLocalizedText('email', context)),
+                      icon: const Icon(Icons.email_outlined, size: 20),
                     ),
+                    ButtonSegment(
+                      value: SignupMethod.phone,
+                      label: Text(_getLocalizedText('phone', context)),
+                      icon: const Icon(Icons.phone_outlined, size: 20),
+                    ),
+                  ],
+                  selected: {_method},
+                  onSelectionChanged: (Set<SignupMethod> selection) {
+                    setState(() => _method = selection.first);
+                  },
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.comfortable,
                   ),
                 ),
                 
@@ -175,8 +231,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Email Address',
-                      hintText: 'you@example.com',
+                      labelText: _getLocalizedText('emailAddress', context),
+                      hintText: _getLocalizedText('enterYourEmail', context),
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -186,11 +242,11 @@ class _SignupScreenState extends State<SignupScreen> {
                     textInputAction: TextInputAction.done,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your email';
+                        return _getLocalizedText('pleaseEnterEmail', context);
                       }
                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
-                        return 'Please enter a valid email';
+                        return _getLocalizedText('pleaseEnterValidEmail', context);
                       }
                       return null;
                     },
@@ -199,8 +255,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   TextFormField(
                     controller: _phoneController,
                     decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      hintText: '+1 (555) 123-4567',
+                      labelText: _getLocalizedText('phoneNumber', context),
+                      hintText: _getLocalizedText('enterPhoneNumber', context),
                       prefixIcon: const Icon(Icons.phone_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -213,14 +269,19 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your phone number';
+                        return _getLocalizedText('pleaseEnterPhoneNumber', context);
                       }
                       if (value.replaceAll(RegExp(r'[^0-9]'), '').length < 10) {
-                        return 'Please enter a valid phone number';
+                        return _getLocalizedText('pleaseEnterValidPhoneNumber', context);
                       }
                       return null;
                     },
                   ),
+                
+                const SizedBox(height: 24),
+                
+                // Language Selector
+                const LanguageSelector(),
                 
                 const SizedBox(height: 32),
                 
@@ -262,7 +323,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 56,
-                  child: FilledButton(
+                    child: FilledButton(
                     onPressed: _isLoading ? null : _handleSignup,
                     child: _isLoading
                         ? const SizedBox(
@@ -273,9 +334,9 @@ class _SignupScreenState extends State<SignupScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Continue',
-                            style: TextStyle(
+                        : Text(
+                            _getLocalizedText('continueButton', context),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),

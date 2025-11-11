@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'app.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'services/firebase_auth_service.dart';
+import 'providers/locale_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +15,12 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
   
-  runApp(const FamilyCalRoot());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocaleProvider(),
+      child: const FamilyCalRoot(),
+    ),
+  );
 }
 
 class FamilyCalRoot extends StatelessWidget {
@@ -20,17 +28,35 @@ class FamilyCalRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FamilyCal',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A73E8),
-          brightness: Brightness.light,
-        ),
-      ),
-      home: const AuthGate(),
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, child) {
+        return MaterialApp(
+          title: 'FamilyCal',
+          debugShowCheckedModeBanner: false,
+          
+          // Localization configuration
+          locale: localeProvider.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('he'), // Hebrew (default)
+            Locale('en'), // English
+          ],
+          
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF1A73E8),
+              brightness: Brightness.light,
+            ),
+          ),
+          home: const AuthGate(),
+        );
+      },
     );
   }
 }

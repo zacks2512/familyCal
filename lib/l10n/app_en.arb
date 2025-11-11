@@ -1,0 +1,285 @@
+{
+  "@@locale": "en",
+  "appName": "FamilyCal",
+  "@appName": {
+    "description": "The application name"
+  },
+  "appTagline": "Coordinate family schedules.\nNever miss a drop-off or pickup.",
+  "@appTagline": {
+    "description": "The application tagline on welcome screen"
+  },
+  
+  "register": "Register",
+  "@register": {
+    "description": "Register button text"
+  },
+  "login": "Log In",
+  "@login": {
+    "description": "Login button text"
+  },
+  "termsAndPrivacy": "By continuing, you agree to our Terms of Service\nand Privacy Policy",
+  "@termsAndPrivacy": {
+    "description": "Terms and privacy disclaimer"
+  },
+  
+  "registerTitle": "Register",
+  "@registerTitle": {
+    "description": "Register screen title"
+  },
+  "registerSubtitle": "Choose how you'd like to register",
+  "@registerSubtitle": {
+    "description": "Register screen subtitle"
+  },
+  "loginTitle": "Log In",
+  "@loginTitle": {
+    "description": "Login screen title"
+  },
+  "loginSubtitle": "Choose how you'd like to log in",
+  "@loginSubtitle": {
+    "description": "Login screen subtitle"
+  },
+  
+  "continueWithGoogle": "Continue with Google",
+  "@continueWithGoogle": {
+    "description": "Google sign-in button"
+  },
+  "continueWithFacebook": "Continue with Facebook",
+  "@continueWithFacebook": {
+    "description": "Facebook sign-in button"
+  },
+  "orDivider": "or",
+  "@orDivider": {
+    "description": "Divider text between social and email options"
+  },
+  "registerWithEmailPhone": "Register with Email or Phone",
+  "@registerWithEmailPhone": {
+    "description": "Email/phone registration button"
+  },
+  "loginWithEmailPhone": "Log In with Email or Phone",
+  "@loginWithEmailPhone": {
+    "description": "Email/phone login button"
+  },
+  
+  "facebookComingSoon": "Facebook Sign-In coming soon!",
+  "@facebookComingSoon": {
+    "description": "Message when Facebook is not yet implemented"
+  },
+  
+  "signupTitle": "Create Account",
+  "@signupTitle": {
+    "description": "Signup screen title"
+  },
+  "signupSubtitle": "Enter your details to get started",
+  "@signupSubtitle": {
+    "description": "Signup screen subtitle"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field label"
+  },
+  "enterYourName": "Enter your name",
+  "@enterYourName": {
+    "description": "Name field hint"
+  },
+  "pleaseEnterYourName": "Please enter your name",
+  "@pleaseEnterYourName": {
+    "description": "Name field validation error"
+  },
+  
+  "contactMethod": "Contact Method",
+  "@contactMethod": {
+    "description": "Contact method selector label"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email option"
+  },
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone option"
+  },
+  "emailAddress": "Email Address",
+  "@emailAddress": {
+    "description": "Email field label"
+  },
+  "enterYourEmail": "Enter your email",
+  "@enterYourEmail": {
+    "description": "Email field hint"
+  },
+  "pleaseEnterEmail": "Please enter your email",
+  "@pleaseEnterEmail": {
+    "description": "Email required validation"
+  },
+  "pleaseEnterValidEmail": "Please enter a valid email",
+  "@pleaseEnterValidEmail": {
+    "description": "Email format validation"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone field label"
+  },
+  "enterPhoneNumber": "Enter phone number",
+  "@enterPhoneNumber": {
+    "description": "Phone field hint"
+  },
+  "pleaseEnterPhoneNumber": "Please enter your phone number",
+  "@pleaseEnterPhoneNumber": {
+    "description": "Phone required validation"
+  },
+  "pleaseEnterValidPhoneNumber": "Please enter a valid phone number",
+  "@pleaseEnterValidPhoneNumber": {
+    "description": "Phone format validation"
+  },
+  
+  "language": "Language",
+  "@language": {
+    "description": "Language selector label"
+  },
+  "hebrew": "עברית",
+  "@hebrew": {
+    "description": "Hebrew language option"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  
+  "continueButton": "Continue",
+  "@continueButton": {
+    "description": "Continue button"
+  },
+  "alreadyHaveAccount": "Already have an account?",
+  "@alreadyHaveAccount": {
+    "description": "Link to login from signup"
+  },
+  
+  "verificationTitle": "Verify Your {method}",
+  "@verificationTitle": {
+    "description": "Verification screen title",
+    "placeholders": {
+      "method": {
+        "type": "String",
+        "example": "Email"
+      }
+    }
+  },
+  "verificationCodeSent": "We sent a 6-digit code to",
+  "@verificationCodeSent": {
+    "description": "Verification instructions"
+  },
+  "enterCodeBelow": "Enter the code below to continue",
+  "@enterCodeBelow": {
+    "description": "Verification code instruction"
+  },
+  "verificationCode": "Verification Code",
+  "@verificationCode": {
+    "description": "Verification code field label"
+  },
+  "enterCode": "Enter 6-digit code",
+  "@enterCode": {
+    "description": "Verification code field hint"
+  },
+  "pleaseEnterCode": "Please enter the verification code",
+  "@pleaseEnterCode": {
+    "description": "Code required validation"
+  },
+  "codeMustBe6Digits": "Code must be 6 digits",
+  "@codeMustBe6Digits": {
+    "description": "Code length validation"
+  },
+  "verify": "Verify",
+  "@verify": {
+    "description": "Verify button"
+  },
+  "didntReceiveCode": "Didn't receive the code?",
+  "@didntReceiveCode": {
+    "description": "Resend code prompt"
+  },
+  "resend": "Resend",
+  "@resend": {
+    "description": "Resend code button"
+  },
+  
+  "calendar": "Calendar",
+  "@calendar": {
+    "description": "Calendar tab"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings tab"
+  },
+  
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings screen title"
+  },
+  "account": "Account",
+  "@account": {
+    "description": "Account section header"
+  },
+  "signOut": "Sign Out",
+  "@signOut": {
+    "description": "Sign out button"
+  },
+  "children": "Children",
+  "@children": {
+    "description": "Children section header"
+  },
+  "addChild": "Add Child",
+  "@addChild": {
+    "description": "Add child button"
+  },
+  "familyMembers": "Family Members",
+  "@familyMembers": {
+    "description": "Family members section header"
+  },
+  "addMember": "Add Member",
+  "@addMember": {
+    "description": "Add member button"
+  },
+  "activityLog": "Activity Log",
+  "@activityLog": {
+    "description": "Activity log section header"
+  },
+  "viewActivityLog": "View Activity Log",
+  "@viewActivityLog": {
+    "description": "View activity log button"
+  },
+  
+  "day": "Day",
+  "@day": {
+    "description": "Day view label"
+  },
+  "week": "Week",
+  "@week": {
+    "description": "Week view label"
+  },
+  "month": "Month",
+  "@month": {
+    "description": "Month view label"
+  },
+  "today": "Today",
+  "@today": {
+    "description": "Today button label"
+  },
+  
+  "familySetupTitle": "Let's Set Up Your Family",
+  "@familySetupTitle": {
+    "description": "Family setup flow title"
+  },
+  "stepXOfY": "Step {current} of {total}",
+  "@stepXOfY": {
+    "description": "Progress indicator",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  }
+}
+
