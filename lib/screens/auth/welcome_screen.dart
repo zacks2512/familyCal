@@ -393,7 +393,7 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
