@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'verification_screen.dart';
+import 'welcome_screen.dart';
 import '../../services/firebase_repository.dart';
 import '../../widgets/language_selector.dart';
 
@@ -52,13 +53,24 @@ class _SignupScreenState extends State<SignupScreen> {
           debugPrint('❌ Email $contact already registered');
           if (mounted) {
             final l10n = AppLocalizations.of(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n?.emailAlreadyRegistered ?? 
-                    'This email is already registered. Please log in instead.'),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+            // Immediately navigate to Welcome, which will then go to Login
+            // This prevents any possibility of retrying registration
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              (route) => false,
             );
+            // Show message after navigation
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n?.emailAlreadyRegistered ?? 
+                        'This email is already registered. Please log in.'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+              }
+            });
           }
           return;
         }

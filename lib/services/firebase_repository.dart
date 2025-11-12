@@ -52,6 +52,101 @@ class FirebaseRepository {
     }
   }
 
+  /// Ensure there is a user profile document for the currently authenticated user.
+  /// If a profile exists with a different docId (e.g. invited users created with random id),
+  /// this will migrate it to the current auth UID and update family membership accordingly.
+  /// Returns the profile data if found or created, otherwise null.
+  Future<Map<String, dynamic>?> ensureUserProfileForCurrentAuth() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        debugPrint('❌ ensureUserProfileForCurrentAuth: No current user');
+        return null;
+      }
+      final uid = user.uid;
+      final email = user.email;
+      debugPrint('🔍 ensureUserProfileForCurrentAuth: uid=$uid, email=$email');
+
+      // 1) Try by UID first
+      debugPrint('🔍 Checking by UID...');
+      final byUid = await _firestore.collection('users').doc(uid).get();
+      if (byUid.exists) {
+        final data = byUid.data()!;
+        debugPrint('✅ Found profile by UID: $uid');
+        // backfill email if missing
+        if ((data['email'] as String?) == null && email != null) {
+          await _firestore.collection('users').doc(uid).update({'email': email});
+        }
+        return byUid.data();
+      }
+      debugPrint('❌ No profile by UID: $uid');
+
+      // 2) Try by email and migrate if needed
+      if (email != null && email.isNotEmpty) {
+        debugPrint('🔍 Checking by email: $email');
+        final query = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          debugPrint('✅ Found profile by email, migrating...');
+          final oldDoc = query.docs.first;
+          final oldData = oldDoc.data();
+          final oldId = oldDoc.id;
+          final familyId = oldData['family_id'] as String?;
+          debugPrint('   Old ID: $oldId, Family ID: $familyId');
+
+          final batch = _firestore.batch();
+          // Create/overwrite new doc at UID with merged data
+          final newData = Map<String, dynamic>.from(oldData);
+          newData['id'] = uid;
+          if (email != null) newData['email'] = email;
+          batch.set(_firestore.collection('users').doc(uid), newData);
+
+          // Update family membership: swap oldId -> uid
+          if (familyId != null && familyId.isNotEmpty) {
+            final familyRef = _firestore.collection('families').doc(familyId);
+            // We need current family data to possibly adjust owner_id
+            final familySnap = await familyRef.get();
+            if (familySnap.exists) {
+              final family = familySnap.data()!;
+              final update = <String, dynamic>{
+                'member_ids': FieldValue.arrayUnion([uid]),
+              };
+              // Remove old
+              update['member_ids_remove'] = FieldValue.arrayRemove([oldId]);
+              // Apply updates (Firestore doesn't support two ops on same field in one update),
+              // so perform separately.
+              await familyRef.update({'member_ids': FieldValue.arrayUnion([uid])});
+              await familyRef.update({'member_ids': FieldValue.arrayRemove([oldId])});
+              // If owner_id equals oldId, move ownership
+              if (family['owner_id'] == oldId) {
+                await familyRef.update({'owner_id': uid});
+              }
+            }
+          }
+
+          // Delete old user doc
+          batch.delete(_firestore.collection('users').doc(oldId));
+
+          await batch.commit();
+          debugPrint('✅ Migrated user profile from $oldId to $uid');
+
+          final newSnap = await _firestore.collection('users').doc(uid).get();
+          return newSnap.data();
+        }
+        debugPrint('❌ No profile by email: $email');
+      }
+
+      debugPrint('❌ No profile found for user $uid (returning null)');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error in ensureUserProfileForCurrentAuth: $e');
+      rethrow;
+    }
+  }
+
   /// Get current user's family ID (creates one if missing, optionally)
   Future<String?> getCurrentUserFamilyId({bool createIfMissing = true}) async {
     final userId = currentUserId;

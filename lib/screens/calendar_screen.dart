@@ -537,9 +537,11 @@ class _CalendarHeader extends StatelessWidget {
     ];
     final segmentedLocalized = SegmentedButton<CalendarViewMode>(
       style: ButtonStyle(
-        padding:
-            MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 12)),
-        visualDensity: VisualDensity.comfortable,
+        padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+        visualDensity: VisualDensity.compact,
+        textStyle: MaterialStateProperty.all(
+          Theme.of(context).textTheme.bodySmall,
+        ),
       ),
       segments: localizedSegments,
       selected: {viewMode},
@@ -557,22 +559,33 @@ class _CalendarHeader extends StatelessWidget {
           child: Semantics(
             label: 'Current month $monthLabel, tap to select month and year',
             button: true,
+            hint: 'Double tap to open month and year picker',
             child: InkWell(
               onTap: onMonthLabelTap,
               borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        monthLabel,
-                        style: Theme.of(context).textTheme.titleLarge,
+                      Flexible(
+                        child: Text(
+                          monthLabel,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w400,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         Icons.arrow_drop_down,
+                        size: 24,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ],
@@ -586,10 +599,23 @@ class _CalendarHeader extends StatelessWidget {
           icon: const Icon(Icons.chevron_right),
           tooltip: 'Next month',
           onPressed: onNextMonth,
+          iconSize: 28,
         ),
-        TextButton(
+        const SizedBox(width: 4),
+        FilledButton.tonal(
           onPressed: onToday,
-          child: Text(l10n.today),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            visualDensity: VisualDensity.comfortable,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.today, size: 18),
+              const SizedBox(width: 6),
+              Text(l10n.today),
+            ],
+          ),
         ),
       ],
     );
@@ -814,102 +840,129 @@ class _MonthCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor =
-        isSelected ? theme.colorScheme.primary.withOpacity(0.08) : Colors.transparent;
-    final borderColor = isSelected
-        ? theme.colorScheme.primary
-        : theme.dividerColor.withOpacity(0.4);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final theme = Theme.of(context);
+        final bgColor =
+            isSelected ? theme.colorScheme.primary.withOpacity(0.08) : Colors.transparent;
+        final borderColor = isSelected
+            ? theme.colorScheme.primary
+            : theme.dividerColor.withOpacity(0.4);
 
-    final calendarState = context.read<FamilyCalState>();
-    const maxVisible = 2;
-    final visibleEvents = events.take(maxVisible).toList();
-    final remainingCount =
-        events.length > maxVisible ? events.length - maxVisible : 0;
+        final calendarState = context.read<FamilyCalState>();
+        
+        // Dynamically determine sizes based on available space
+        final cellHeight = constraints.maxHeight;
+        final cellWidth = constraints.maxWidth;
+        
+        // Scale based on cell height and theme text scale
+        final textScale = MediaQuery.textScaleFactorOf(context);
+        final baseBodySmall = (theme.textTheme.bodySmall?.fontSize ?? 12.0) * textScale;
+        final baseLabelSmall = (theme.textTheme.labelSmall?.fontSize ?? 11.0) * textScale;
+        
+        // Scale font sizes proportionally based on cell dimensions
+        final dateFontSize = (baseBodySmall * (cellHeight / 60.0)).clamp(10.0, baseBodySmall);
+        final eventFontSize = (baseLabelSmall * (cellHeight / 60.0)).clamp(7.0, baseLabelSmall);
+        final iconSize = (cellHeight * 0.10).clamp(6.0, 8.0);
+        final padding = (cellHeight * 0.04).clamp(2.0, 4.0);
+        
+        const maxVisible = 2;
+        final visibleEvents = events.take(maxVisible).toList();
+        final remainingCount =
+            events.length > maxVisible ? events.length - maxVisible : 0;
 
-    return Semantics(
-      label:
-          'Day ${DateFormat('EEEE, MMMM d').format(day)} with ${events.length} events'
-          '${hasWarning ? ' and events missing assignment' : ''}',
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: 0.7),
-            color: bgColor,
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${day.day}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: inMonth
-                      ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
-                ),
+        return Semantics(
+          label:
+              'Day ${DateFormat('EEEE, MMMM d').format(day)} with ${events.length} events'
+              '${hasWarning ? ' and events missing assignment' : ''}',
+          button: true,
+          child: InkWell(
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: borderColor, width: 0.7),
+                color: bgColor,
               ),
-              if (events.isNotEmpty)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final event in visibleEvents)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  event.event.role == EventRole.dropOff 
-                                      ? Icons.arrow_downward 
-                                      : Icons.arrow_upward,
-                                  size: 8,
-                                  color: calendarState.childById(event.event.childId).color,
-                                ),
-                                const SizedBox(width: 2),
-                                Expanded(
-                                  child: Text(
-                                    event.event.title?.isNotEmpty == true
-                                        ? event.event.title!
-                                        : calendarState
-                                            .childById(event.event.childId)
-                                            .displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: calendarState.childById(event.event.childId).color,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (remainingCount > 0)
-                          Text(
-                            '+$remainingCount',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        const Spacer(),
-                        if (hasWarning)
-                          Icon(Icons.error,
-                              size: 12, color: theme.colorScheme.error),
-                      ],
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${day.day}',
+                    style: TextStyle(
+                      fontSize: dateFontSize,
+                      fontWeight: FontWeight.w600,
+                      color: inMonth
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                     ),
                   ),
-                ),
-            ],
+                  if (events.isNotEmpty)
+                    Flexible(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: padding * 0.5),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final event in visibleEvents)
+                              Flexible(
+                                child: Padding(
+                                  padding: EdgeInsets.only(bottom: padding * 0.3),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        event.event.role == EventRole.dropOff 
+                                            ? Icons.arrow_downward 
+                                            : Icons.arrow_upward,
+                                        size: iconSize,
+                                        color: calendarState.childById(event.event.childId).color,
+                                      ),
+                                      SizedBox(width: padding * 0.5),
+                                      Flexible(
+                                        child: Text(
+                                          event.event.title?.isNotEmpty == true
+                                              ? event.event.title!
+                                              : calendarState
+                                                  .childById(event.event.childId)
+                                                  .displayName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: eventFontSize,
+                                            fontWeight: FontWeight.w500,
+                                            color: calendarState.childById(event.event.childId).color,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (remainingCount > 0)
+                              Text(
+                                '+$remainingCount',
+                                style: TextStyle(
+                                  fontSize: eventFontSize,
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (hasWarning)
+                              Icon(Icons.error,
+                                  size: iconSize, color: theme.colorScheme.error),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

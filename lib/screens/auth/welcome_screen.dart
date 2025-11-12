@@ -25,11 +25,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final repo = FirebaseRepository();
       final userCredential = await _authService.signInWithGoogle();
       
       if (!mounted) return;
       
-      // Navigate to family setup flow after social sign-in (new registration)
+      // Check or migrate profile if this user was invited with a different docId
+      final ensured = await repo.ensureUserProfileForCurrentAuth();
+      if (ensured != null) {
+        // Profile exists (or was migrated) → user is already registered
+        debugPrint('⚠️  Existing profile detected - redirecting to app');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+          (route) => false,
+        );
+        return;
+      }
+      
+      // New registration - proceed to setup
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
         (route) => false,
@@ -37,10 +50,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } on FirebaseAuthException catch (e) {
       // If auth actually succeeded but plugin threw a benign error, proceed
       if (FirebaseAuth.instance.currentUser != null && mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
-          (route) => false,
-        );
+        try {
+          final repo = FirebaseRepository();
+          debugPrint('🔄 Checking profile after Firebase auth error...');
+          final ensured = await repo.ensureUserProfileForCurrentAuth();
+          if (ensured != null) {
+            debugPrint('✅ Existing profile detected (from catch) - redirecting to app');
+            if (mounted) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+                (route) => false,
+              );
+            }
+            return;
+          }
+          debugPrint('❌ No profile found (from catch) - proceeding to setup');
+        } catch (profileError) {
+          debugPrint('❌ Error checking profile (from catch): $profileError');
+        }
+        
+        // New user - go to setup
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
+            (route) => false,
+          );
+        }
       } else if (mounted) {
         String message = 'Google Sign-In failed';
         if (e.code == 'ERROR_ABORTED_BY_USER') {
