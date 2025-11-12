@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../app.dart';
+import '../../config/app_config.dart';
+import '../../services/firebase_repository.dart';
 
 /// Third step: Add children
 class AddChildrenScreen extends StatefulWidget {
@@ -42,18 +45,17 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('No Children Added'),
-          content: const Text(
-            'You haven\'t added any children yet. You can add them later from settings.\n\nContinue anyway?',
-          ),
+          title: Text(AppLocalizations.of(context)?.noChildrenAddedTitle ?? 'No Children Added'),
+          content: Text(AppLocalizations.of(context)?.noChildrenAddedMessage ??
+              'You haven\'t added any children yet. You can add them later from settings.\n\nContinue anyway?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Go Back'),
+              child: Text(AppLocalizations.of(context)?.goBack ?? 'Go Back'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Continue'),
+              child: Text(AppLocalizations.of(context)?.continueButton ?? 'Continue'),
             ),
           ],
         ),
@@ -62,10 +64,33 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
       if (confirmed != true) return;
     }
 
-    // TODO: Save all family data to database/state
-    // - Family name: widget.familyName
-    // - Participants: widget.participants
-    // - Children: _children
+    // Save children so they appear in the app after setup
+    try {
+      if (!AppConfig.useMockData) {
+        final repo = FirebaseRepository();
+        final familyId = await repo.getCurrentUserFamilyId(createIfMissing: true);
+        if (familyId != null) {
+          for (final c in _children) {
+            await repo.addChild(
+              familyId: familyId,
+              name: c.name,
+              color: '#${c.color.value.toRadixString(16).substring(2)}',
+              birthDate: null,
+              allergies: null,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save children: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
 
     if (!mounted) return;
 
@@ -80,10 +105,11 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Children'),
+        title: Text(l10n?.addChildrenAppBar ?? 'Add Children'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -117,7 +143,7 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
               
               // Header
               Text(
-                'Add Your Children',
+                l10n?.addYourChildrenTitle ?? 'Add Your Children',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -126,7 +152,7 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
               const SizedBox(height: 8),
               
               Text(
-                'Add the kids you\'ll be coordinating schedules for',
+                l10n?.addYourChildrenSubtitle ?? 'Add the kids you\'ll be coordinating schedules for',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -158,7 +184,7 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
                 OutlinedButton.icon(
                   onPressed: _addChild,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Another Child'),
+                  label: Text(l10n?.addAnotherChild ?? 'Add Another Child'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                   ),
@@ -173,7 +199,9 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
                 child: FilledButton(
                   onPressed: _handleFinish,
                   child: Text(
-                    _children.isEmpty ? 'Skip for Now' : 'Finish Setup',
+                    _children.isEmpty
+                        ? (l10n?.skipForNow ?? 'Skip for Now')
+                        : (l10n?.finishSetup ?? 'Finish Setup'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -198,6 +226,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Center(
       child: Column(
@@ -210,12 +239,12 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No children yet',
+            l10n?.noChildrenYetTitle ?? 'No children yet',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Add the kids you\'ll track schedules for',
+            l10n?.noChildrenYetSubtitle ?? 'Add the kids you\'ll track schedules for',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -225,7 +254,7 @@ class _EmptyState extends StatelessWidget {
           FilledButton.icon(
             onPressed: onAdd,
             icon: const Icon(Icons.add),
-            label: const Text('Add Child'),
+            label: Text(l10n?.addChild ?? 'Add Child'),
           ),
         ],
       ),
@@ -301,16 +330,7 @@ class _AddChildSheetState extends State<_AddChildSheet> {
   final _nameController = TextEditingController();
   Color _selectedColor = Colors.pink.shade300;
 
-  final List<Color> _availableColors = [
-    Colors.pink.shade300,
-    Colors.orange.shade400,
-    Colors.blue.shade400,
-    Colors.green.shade400,
-    Colors.purple.shade400,
-    Colors.red.shade400,
-    Colors.teal.shade400,
-    Colors.amber.shade400,
-  ];
+  // Color options are defined inside build to access localization labels
 
   @override
   void dispose() {
@@ -334,6 +354,7 @@ class _AddChildSheetState extends State<_AddChildSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Container(
       padding: EdgeInsets.only(
@@ -367,7 +388,7 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                 const SizedBox(height: 24),
                 
                 Text(
-                  'Add Child',
+                  l10n?.addChild ?? 'Add Child',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -379,8 +400,8 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Child\'s Name',
-                    hintText: 'Enter their name',
+                    labelText: l10n?.childNameLabel ?? 'Child\'s Name',
+                    hintText: l10n?.enterTheirName ?? 'Enter their name',
                     prefixIcon: const Icon(Icons.child_care),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -389,7 +410,7 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                   textCapitalization: TextCapitalization.words,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a name';
+                      return l10n?.pleaseEnterAName ?? 'Please enter a name';
                     }
                     return null;
                   },
@@ -400,38 +421,57 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                 
                 // Color Picker
                 Text(
-                  'Choose a color',
+                  l10n?.chooseAColor ?? 'Choose a color',
                   style: theme.textTheme.titleSmall,
                 ),
                 const SizedBox(height: 12),
                 Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _availableColors.map((color) {
-                    final isSelected = color == _selectedColor;
-                    return InkWell(
-                      onTap: () => setState(() => _selectedColor = color),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(
-                                  color: colorScheme.onSurface,
-                                  width: 3,
-                                )
-                              : null,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    {'label': l10n?.colorPink ?? 'Pink', 'color': Colors.pink.shade300},
+                    {'label': l10n?.colorOrange ?? 'Orange', 'color': Colors.orange.shade400},
+                    {'label': l10n?.colorBlue ?? 'Blue', 'color': Colors.blue.shade400},
+                    {'label': l10n?.colorGreen ?? 'Green', 'color': Colors.green.shade400},
+                    {'label': l10n?.colorPurple ?? 'Purple', 'color': Colors.purple.shade400},
+                    {'label': l10n?.colorRed ?? 'Red', 'color': Colors.red.shade400},
+                    {'label': l10n?.colorTeal ?? 'Teal', 'color': Colors.teal.shade400},
+                    {'label': l10n?.colorAmber ?? 'Amber', 'color': Colors.amber.shade400},
+                  ].map((entry) {
+                    final Color color = entry['color'] as Color;
+                    final String label = entry['label'] as String;
+                    final bool isSelected = color == _selectedColor;
+                    return Tooltip(
+                      message: label,
+                      child: Semantics(
+                        label: label,
+                        button: true,
+                        selected: isSelected,
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedColor = color),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: colorScheme.onSurface,
+                                      width: 3,
+                                    )
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  )
+                                : null,
+                          ),
                         ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 20,
-                              )
-                            : null,
                       ),
                     );
                   }).toList(),
@@ -445,12 +485,9 @@ class _AddChildSheetState extends State<_AddChildSheet> {
                   height: 56,
                   child: FilledButton(
                     onPressed: _handleAdd,
-                    child: const Text(
-                      'Add Child',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Text(
+                      l10n?.addChild ?? 'Add Child',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -481,7 +518,9 @@ class _ProgressIndicator extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Step $currentStep of $totalSteps',
+          AppLocalizations.of(context) != null
+              ? AppLocalizations.of(context)!.stepXOfY(currentStep, totalSteps)
+              : 'Step $currentStep of $totalSteps',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

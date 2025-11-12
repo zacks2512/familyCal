@@ -84,12 +84,18 @@ class FamilyCalApp extends StatelessWidget {
     );
 
     if (AppConfig.useMockData) {
-      return ChangeNotifierProvider(
-        create: (_) => createMockState(),
-        child: app,
+      return ChangeNotifierProvider<LocaleProvider>(
+        create: (_) => LocaleProvider(),
+        child: ChangeNotifierProvider(
+          create: (_) => createMockState(),
+          child: app,
+        ),
       );
     } else {
-      return FirestoreAppStateProvider(child: app);
+      return ChangeNotifierProvider<LocaleProvider>(
+        create: (_) => LocaleProvider(),
+        child: FirestoreAppStateProvider(child: app),
+      );
     }
   }
 }

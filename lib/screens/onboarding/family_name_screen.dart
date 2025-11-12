@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'add_participants_screen.dart';
 
 /// First step: Create family and set name
@@ -37,6 +38,7 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -71,7 +73,7 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                 
                 // Header
                 Text(
-                  'Create Your Family',
+                  l10n?.familySetupCreateTitle ?? 'Create Your Family',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -80,7 +82,7 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                 const SizedBox(height: 8),
                 
                 Text(
-                  'Let\'s start by giving your family a name',
+                  l10n?.familySetupCreateSubtitle ?? 'Let\'s start by giving your family a name',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -92,8 +94,8 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                 TextFormField(
                   controller: _familyNameController,
                   decoration: InputDecoration(
-                    labelText: 'Family Name',
-                    hintText: 'e.g., The Smiths, Johnson Family',
+                    labelText: l10n?.familyNameLabel ?? 'Family Name',
+                    hintText: l10n?.familyNameHint ?? 'e.g., The Smiths, Johnson Family',
                     prefixIcon: const Icon(Icons.home_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -102,7 +104,7 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                   textCapitalization: TextCapitalization.words,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a family name';
+                      return l10n?.pleaseEnterFamilyName ?? 'Please enter a family name';
                     }
                     return null;
                   },
@@ -128,7 +130,7 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'You can change this later in settings',
+                          l10n?.familyNameHelper ?? 'You can change this later in settings',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurface,
                           ),
@@ -146,12 +148,9 @@ class _FamilyNameScreenState extends State<FamilyNameScreen> {
                   height: 56,
                   child: FilledButton(
                     onPressed: _handleContinue,
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Text(
+                      l10n?.continueButton ?? 'Continue',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -184,7 +183,9 @@ class _ProgressIndicator extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Step $currentStep of $totalSteps',
+          AppLocalizations.of(context) != null
+              ? AppLocalizations.of(context)!.stepXOfY(currentStep, totalSteps)
+              : 'Step $currentStep of $totalSteps',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
