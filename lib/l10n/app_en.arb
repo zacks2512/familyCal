@@ -416,6 +416,8 @@
   "@emailAlreadyRegistered": { "description": "Error when user tries to register with an already-registered email" }
 ,
   "loginCancelled": "Login cancelled",
-  "@loginCancelled": { "description": "Shown when the user cancels the Google sign-in flow" }
+  "@loginCancelled": { "description": "Shown when the user cancels the Google sign-in flow" },
+  "eventNeedsResponsible": "Event needs responsible person",
+  "@eventNeedsResponsible": { "description": "Tooltip for unassigned event warning icon" }
 }
 

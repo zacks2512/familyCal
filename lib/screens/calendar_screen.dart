@@ -951,8 +951,11 @@ class _MonthCell extends StatelessWidget {
                                 ),
                               ),
                             if (hasWarning)
-                              Icon(Icons.error,
-                                  size: iconSize, color: theme.colorScheme.error),
+                              Tooltip(
+                                message: AppLocalizations.of(context)!.eventNeedsResponsible,
+                                child: Icon(Icons.error,
+                                    size: iconSize, color: theme.colorScheme.error),
+                              ),
                           ],
                         ),
                       ),

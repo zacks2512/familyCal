@@ -156,6 +156,8 @@
   "@emailAlreadyRegistered": { "description": "שגיאה כאשר המשתמש מנסה להירשם עם כתובת דוא״ל שכבר רשומה" }
 ,
   "loginCancelled": "ההתחברות בוטלה",
-  "@loginCancelled": { "description": "מוצג כאשר המשתמש מבטל את תהליך ההתחברות עם Google" }
+  "@loginCancelled": { "description": "מוצג כאשר המשתמש מבטל את תהליך ההתחברות עם Google" },
+  "eventNeedsResponsible": "האירוע זקוק לאדם אחראי",
+  "@eventNeedsResponsible": { "description": "טולטיפ לאיקון אזהרה של אירוע לא משויך" }
 }
 
