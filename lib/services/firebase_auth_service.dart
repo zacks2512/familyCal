@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -7,6 +8,7 @@ class FirebaseAuthService {
   static final FirebaseAuthService _instance = FirebaseAuthService._internal();
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   factory FirebaseAuthService() {
     return _instance;
@@ -53,7 +55,12 @@ class FirebaseAuthService {
   }
   
   /// Sign in with Google
-  Future<UserCredential> signInWithGoogle() async {
+  /// Takes optional [onPreflight] callback to verify profile exists in Firestore
+  /// BEFORE signing into Firebase. If preflight returns false, does NOT create
+  /// a Firebase Auth account.
+  Future<UserCredential> signInWithGoogle({
+    Future<bool> Function(String email)? onPreflight,
+  }) async {
     try {
       debugPrint('🔑 Starting Google Sign-In...');
       
@@ -85,6 +92,27 @@ class FirebaseAuthService {
       
       debugPrint('✅ Google user selected: ${googleUser.email}');
       final selectedEmail = googleUser.email;
+
+      // Preflight: verify with callback BEFORE creating Firebase Auth user
+      if (onPreflight != null) {
+        try {
+          debugPrint('🔍 Running preflight check for $selectedEmail');
+          final allowed = await onPreflight(selectedEmail);
+          if (!allowed) {
+            debugPrint('❌ Preflight check failed for $selectedEmail');
+            await _googleSignIn.signOut();
+            throw FirebaseAuthException(
+              code: 'not-registered',
+              message: 'Email $selectedEmail is not registered',
+            );
+          }
+          debugPrint('✅ Preflight check passed for $selectedEmail');
+        } catch (e) {
+          debugPrint('❌ Preflight error: $e');
+          await _googleSignIn.signOut();
+          rethrow;
+        }
+      }
       
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;

@@ -12,6 +12,46 @@ class FirebaseRepository {
   
   String? get currentUserId => _auth.currentUser?.uid;
   
+  /// Fetch a user profile document by UID. Returns null if not exists.
+  Future<Map<String, dynamic>?> getUserProfileById(String uid) async {
+    try {
+      debugPrint('🔍 Fetching user profile for $uid');
+      final snap = await _firestore.collection('users').doc(uid).get();
+      if (!snap.exists) {
+        debugPrint('❌ User profile not found for $uid');
+        return null;
+      }
+      debugPrint('✅ Found user profile for $uid: ${snap.data()}');
+      return snap.data();
+    } catch (e) {
+      debugPrint('❌ Error fetching user profile: $e');
+      rethrow;
+    }
+  }
+  
+  /// Fetch a user profile by email. Returns null if not exists.
+  Future<Map<String, dynamic>?> getUserProfileByEmail(String email) async {
+    try {
+      debugPrint('🔍 Searching for user profile with email: $email');
+      final query = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      
+      if (query.docs.isEmpty) {
+        debugPrint('❌ No user profile found for email: $email');
+        return null;
+      }
+      
+      debugPrint('✅ Found user profile for email $email');
+      return query.docs.first.data();
+    } catch (e) {
+      debugPrint('❌ Error searching user profile by email: $e');
+      rethrow;
+    }
+  }
+
   /// Get current user's family ID (creates one if missing, optionally)
   Future<String?> getCurrentUserFamilyId({bool createIfMissing = true}) async {
     final userId = currentUserId;
@@ -55,6 +95,7 @@ class FirebaseRepository {
       'id': userId,
       'family_id': familyId,
       'display_name': ownerName,
+      'email': _auth.currentUser?.email,
       'created_at': FieldValue.serverTimestamp(),
       'settings': {
         'calendar_sync_enabled': true,

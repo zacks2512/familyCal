@@ -104,6 +104,25 @@
   "share": "שתף",
   "inviteSent": "הזמנה נשלחה ✓",
   
+  "exitSetupTitle": "לצאת מההגדרה?",
+  "@exitSetupTitle": { "description": "כותרת דיאלוג יציאה מההגדרה" },
+  "exitSetupMessage": "ההתקדמות שלכם תאבד.",
+  "@exitSetupMessage": { "description": "הודעת דיאלוג יציאה מההגדרה" },
+  "continueSetup": "המשך בהגדרה",
+  "@continueSetup": { "description": "כפתור המשך בהגדרה" },
+  "welcomeAfterSetupTitle": "ברוכים הבאים ל‑FamilyCal!",
+  "@welcomeAfterSetupTitle": { "description": "כותרת דף/דיאלוג ברוכים הבאים" },
+  "welcomeAfterSetupBody": "הקישו על + כדי להוסיף אירוע ראשון. החליקו כדי לשנות חודשים.",
+  "@welcomeAfterSetupBody": { "description": "טקסט הסבר ראשוני לאחר ההגדרה" },
+  "gotIt": "הבנתי",
+  "@gotIt": { "description": "סגירת דיאלוג ברוכים הבאים" },
+  "onboardingStepFamily": "משפחה",
+  "@onboardingStepFamily": { "description": "תווית שלב: משפחה" },
+  "onboardingStepMembers": "חברים",
+  "@onboardingStepMembers": { "description": "תווית שלב: חברים" },
+  "onboardingStepChildren": "ילדים",
+  "@onboardingStepChildren": { "description": "תווית שלב: ילדים" },
+  
   "addChildrenAppBar": "הוסיפו ילדים",
   "addYourChildrenTitle": "הוסיפו את ילדיכם",
   "addYourChildrenSubtitle": "הוסיפו את הילדים שעבורם תתאמו לוחות זמנים",
@@ -129,5 +148,14 @@
   "colorAmber": "ענבר"
 ,
   "cancel": "ביטול"
+,
+  "noAccountPleaseRegister": "לא נמצא חשבון לכתובת Google הזו. אנא הירשמו תחילה או השתמשו בקישור ההזמנה.",
+  "@noAccountPleaseRegister": { "description": "שגיאה בעת התחברות עם Google למשתמש שלא נרשם/הוזמן עדיין" }
+,
+  "emailAlreadyRegistered": "כתובת דוא״ל זו כבר רשומה. אנא התחברו במקום זאת.",
+  "@emailAlreadyRegistered": { "description": "שגיאה כאשר המשתמש מנסה להירשם עם כתובת דוא״ל שכבר רשומה" }
+,
+  "loginCancelled": "ההתחברות בוטלה",
+  "@loginCancelled": { "description": "מוצג כאשר המשתמש מבטל את תהליך ההתחברות עם Google" }
 }
 

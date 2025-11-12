@@ -29,7 +29,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && 
                      (request.auth.uid == userId || 
-                      request.auth.uid in getFamilyData(resource.data.family_id).member_ids);
+                      (resource.data.family_id != null && request.auth.uid in getFamilyData(resource.data.family_id).member_ids));
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAuthenticated() && request.auth.uid == userId;
       allow delete: if isAuthenticated() && request.auth.uid == userId;

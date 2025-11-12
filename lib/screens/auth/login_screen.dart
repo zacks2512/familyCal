@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'verification_screen.dart';
 import 'signup_screen.dart';
-import '../../services/mock_auth_service.dart';
+import '../../services/firebase_auth_service.dart';
+import '../../services/firebase_repository.dart';
+import 'welcome_screen.dart';
 
 enum LoginMethod { email, phone }
 
@@ -39,11 +43,32 @@ class _LoginScreenState extends State<LoginScreen> {
           ? _emailController.text.trim()
           : _phoneController.text.trim();
 
-      // In mock mode, we don't check if user exists, just send verification
+      // Check if user exists in Firestore BEFORE sign-in
       if (_method == LoginMethod.email) {
-        await MockAuthService.sendEmailVerification(contact, 'User');
-      } else {
-        await MockAuthService.sendPhoneVerification(contact, 'User');
+        debugPrint('🔍 Checking if email $contact is registered...');
+        final repo = FirebaseRepository();
+        final profile = await repo.getUserProfileByEmail(contact);
+        
+        if (profile == null) {
+          debugPrint('❌ Email $contact is not registered');
+          if (mounted) {
+            final l10n = AppLocalizations.of(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n?.noAccountPleaseRegister ?? 
+                    'No account found with this email. Please register first.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+            // Return to Welcome screen
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              (route) => false,
+            );
+          }
+          return;
+        }
+        debugPrint('✅ Email $contact is registered, proceeding to verification');
       }
 
       if (!mounted) return;
@@ -62,6 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       if (mounted) {
+        debugPrint('❌ Login error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),

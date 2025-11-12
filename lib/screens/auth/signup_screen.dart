@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'verification_screen.dart';
-import '../../services/mock_auth_service.dart';
+import '../../services/firebase_repository.dart';
 import '../../widgets/language_selector.dart';
 
 enum SignupMethod { email, phone }
@@ -38,18 +38,31 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final contact = _method == SignupMethod.email
+          ? _emailController.text.trim()
+          : _phoneController.text.trim();
+
+      // Check if email already registered
       if (_method == SignupMethod.email) {
-        // Send email verification
-        await MockAuthService.sendEmailVerification(
-          _emailController.text.trim(),
-          _nameController.text.trim(),
-        );
-      } else {
-        // Send phone verification
-        await MockAuthService.sendPhoneVerification(
-          _phoneController.text.trim(),
-          _nameController.text.trim(),
-        );
+        debugPrint('🔍 Checking if email $contact already exists...');
+        final repo = FirebaseRepository();
+        final profile = await repo.getUserProfileByEmail(contact);
+        
+        if (profile != null) {
+          debugPrint('❌ Email $contact already registered');
+          if (mounted) {
+            final l10n = AppLocalizations.of(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n?.emailAlreadyRegistered ?? 
+                    'This email is already registered. Please log in instead.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+          return;
+        }
+        debugPrint('✅ Email $contact is available for registration');
       }
 
       if (!mounted) return;
@@ -59,15 +72,14 @@ class _SignupScreenState extends State<SignupScreen> {
         MaterialPageRoute(
           builder: (_) => VerificationScreen(
             method: _method,
-            contact: _method == SignupMethod.email
-                ? _emailController.text.trim()
-                : _phoneController.text.trim(),
+            contact: contact,
             isSignup: true,
           ),
         ),
       );
     } catch (e) {
       if (mounted) {
+        debugPrint('❌ Signup error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),

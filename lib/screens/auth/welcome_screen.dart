@@ -4,6 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import '../../services/firebase_auth_service.dart';
+import '../../services/firebase_repository.dart';
 import '../onboarding/family_setup_flow.dart';
 import '../../app.dart';
 import '../../widgets/language_selector.dart';
@@ -34,7 +35,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      // If Firebase already considers the user signed in, proceed as success
+      // If auth actually succeeded but plugin threw a benign error, proceed
       if (FirebaseAuth.instance.currentUser != null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
@@ -44,30 +45,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         String message = 'Google Sign-In failed';
         if (e.code == 'ERROR_ABORTED_BY_USER') {
           message = 'Sign-in cancelled';
+        } else if (e.code == 'account-exists-with-different-credential') {
+          message = 'This email is linked to a different sign-in method. Please use that method or register again.';
         } else {
           message = 'Google Sign-In failed: ${e.message}';
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
       }
     } catch (e) {
-      // If Firebase already considers the user signed in, proceed as success
       if (FirebaseAuth.instance.currentUser != null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const FamilySetupFlow()),
           (route) => false,
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Google Sign-In failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -331,54 +329,122 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await _authService.signInWithGoogle();
+      final repo = FirebaseRepository();
       
+      // 1) Google sign-in WITHOUT preflight (preflight checks don't work reliably after logout)
+      // We'll verify the profile exists AFTER successful sign-in
+      await _authService.signInWithGoogle(onPreflight: null);
       if (!mounted) return;
       
-      // Login goes directly to calendar app (user already has family setup)
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const FamilyCalApp()),
-        (route) => false,
-      );
-    } on FirebaseAuthException catch (e) {
-      // If Firebase already considers the user signed in, proceed as success
-      if (FirebaseAuth.instance.currentUser != null && mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
-          (route) => false,
-        );
-      } else if (mounted) {
-        String message = 'Google Login failed';
-        if (e.code == 'ERROR_ABORTED_BY_USER') {
-          message = 'Login cancelled';
-        } else {
-          message = 'Google Login failed: ${e.message}';
+      debugPrint('✅ Google sign-in successful, verifying profile exists...');
+      
+      // 2) Verify user profile exists in Firestore
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
+        throw Exception('No user UID after sign-in');
+      }
+      
+      final profile = await repo.getUserProfileById(uid);
+      if (profile == null) {
+        debugPrint('❌ User $uid has no profile in Firestore');
+        await _authService.signOut();
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n?.noAccountPleaseRegister ?? 
+                'No account found for this Google address. Please register first or use your invite link.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ));
+          Navigator.of(context).pop();
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        return;
       }
+      
+      debugPrint('✅ Profile verified, proceeding to app');
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        final isCancelled = e.code == 'ERROR_ABORTED_BY_USER' || e.code == 'user-cancelled' || e.code == 'sign_in_canceled';
+        final message = isCancelled
+            ? (l10n?.loginCancelled ?? 'Login cancelled')
+            : 'Google Login failed: ${e.message}';
+        
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
+        
+        if (!isCancelled) {
+          Navigator.of(context).pop();
+        }
+      }
+      return;
     } catch (e) {
-      // If Firebase already considers the user signed in, proceed as success
-      if (FirebaseAuth.instance.currentUser != null && mounted) {
+      if (mounted) {
+        debugPrint('❌ Login error: $e');
+        
+        // Check if auth actually succeeded despite the error (benign plugin error)
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          debugPrint('⚠️  Auth succeeded despite error, checking profile...');
+          try {
+            final repo = FirebaseRepository();
+            final profile = await repo.getUserProfileById(uid);
+            if (profile != null) {
+              debugPrint('✅ Profile verified, proceeding to app');
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+                  (route) => false,
+                );
+              }
+              return;
+            } else {
+              // User has Auth account but no profile - not registered
+              debugPrint('❌ User $uid has no profile - not registered');
+              await _authService.signOut();
+              if (mounted) {
+                final l10n = AppLocalizations.of(context);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n?.noAccountPleaseRegister ?? 
+                      'User is not registered. Please register first.'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ));
+                // Return to Welcome page
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  (route) => false,
+                );
+              }
+              return;
+            }
+          } catch (profileError) {
+            debugPrint('❌ Profile lookup error: $profileError');
+            await _authService.signOut();
+          }
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Google Login failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ));
+        // Return to Welcome page instead of just popping
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
           (route) => false,
         );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Login failed: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
       }
+      return;
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+
+    // 3) All checks passed → go to app
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+      (route) => false,
+    );
   }
 
   @override

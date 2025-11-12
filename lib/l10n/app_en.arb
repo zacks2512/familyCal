@@ -340,6 +340,25 @@
   "inviteSent": "Invite sent ✓",
   "@inviteSent": { "description": "Invite sent status" },
   
+  "exitSetupTitle": "Exit setup?",
+  "@exitSetupTitle": { "description": "Exit setup dialog title" },
+  "exitSetupMessage": "Your progress will be lost.",
+  "@exitSetupMessage": { "description": "Exit setup dialog message" },
+  "continueSetup": "Continue setup",
+  "@continueSetup": { "description": "Continue setup action" },
+  "welcomeAfterSetupTitle": "Welcome to FamilyCal!",
+  "@welcomeAfterSetupTitle": { "description": "Welcome bottom sheet title" },
+  "welcomeAfterSetupBody": "Tap + to add your first event. Swipe to change months.",
+  "@welcomeAfterSetupBody": { "description": "Welcome bottom sheet body" },
+  "gotIt": "Got it",
+  "@gotIt": { "description": "Dismiss welcome dialog" },
+  "onboardingStepFamily": "Family",
+  "@onboardingStepFamily": { "description": "Step label: Family" },
+  "onboardingStepMembers": "Members",
+  "@onboardingStepMembers": { "description": "Step label: Members" },
+  "onboardingStepChildren": "Children",
+  "@onboardingStepChildren": { "description": "Step label: Children" },
+  
   "addChildrenAppBar": "Add Children",
   "@addChildrenAppBar": { "description": "Add children app bar title" },
   "addYourChildrenTitle": "Add Your Children",
@@ -390,5 +409,13 @@
 ,
   "cancel": "Cancel",
   "@cancel": { "description": "Generic cancel button label" }
+,
+  "noAccountPleaseRegister": "No account found for this Google address. Please register first or use your invite link.",
+  "@noAccountPleaseRegister": { "description": "Shown when logging in with Google but user has no profile/family (not registered/invited)" },
+  "emailAlreadyRegistered": "This email is already registered. Please log in instead.",
+  "@emailAlreadyRegistered": { "description": "Error when user tries to register with an already-registered email" }
+,
+  "loginCancelled": "Login cancelled",
+  "@loginCancelled": { "description": "Shown when the user cancels the Google sign-in flow" }
 }
 

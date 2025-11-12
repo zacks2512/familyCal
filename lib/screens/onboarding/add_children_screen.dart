@@ -3,6 +3,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../app.dart';
 import '../../config/app_config.dart';
 import '../../services/firebase_repository.dart';
+import '../auth/welcome_screen.dart';
+import '../../services/firebase_auth_service.dart';
 
 /// Third step: Add children
 class AddChildrenScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class AddChildrenScreen extends StatefulWidget {
 
 class _AddChildrenScreenState extends State<AddChildrenScreen> {
   final List<_Child> _children = [];
+  final _auth = FirebaseAuthService();
 
   void _addChild() {
     showModalBottomSheet(
@@ -37,6 +40,35 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
 
   void _removeChild(int index) {
     setState(() => _children.removeAt(index));
+  }
+
+  Future<void> _confirmExitSetup() async {
+    final l10n = AppLocalizations.of(context);
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n?.exitSetupTitle ?? 'Exit setup?'),
+        content: Text(l10n?.exitSetupMessage ?? 'Your progress will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n?.continueSetup ?? 'Continue setup'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n?.signOut ?? 'Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (shouldExit == true && mounted) {
+      await _auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (route) => false,
+      );
+    }
   }
 
   Future<void> _handleFinish() async {
@@ -96,7 +128,7 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
 
     // Navigate to main app
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const FamilyCalApp()),
+      MaterialPageRoute(builder: (_) => const FamilyCalApp(showSetupWelcome: true)),
       (route) => false,
     );
   }
@@ -110,6 +142,11 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n?.addChildrenAppBar ?? 'Add Children'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _confirmExitSetup,
+          tooltip: l10n?.exitSetupTitle ?? 'Exit setup?',
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -199,14 +236,21 @@ class _AddChildrenScreenState extends State<AddChildrenScreen> {
                 child: FilledButton(
                   onPressed: _handleFinish,
                   child: Text(
-                    _children.isEmpty
-                        ? (l10n?.skipForNow ?? 'Skip for Now')
-                        : (l10n?.finishSetup ?? 'Finish Setup'),
+                    l10n?.finishSetup ?? 'Finish Setup',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Consistent Skip for Now secondary action
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _handleFinish,
+                  child: Text(l10n?.skipForNow ?? 'Skip for Now'),
                 ),
               ),
             ],
@@ -513,6 +557,7 @@ class _ProgressIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,6 +589,47 @@ class _ProgressIndicator extends StatelessWidget {
               ),
             );
           }),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '1. ${l10n?.onboardingStepFamily ?? 'Family'}',
+                textAlign: TextAlign.left,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: currentStep == 1
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: currentStep == 1 ? FontWeight.w700 : FontWeight.w500,
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                '2. ${l10n?.onboardingStepMembers ?? 'Members'}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: currentStep == 2
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: currentStep == 2 ? FontWeight.w700 : FontWeight.w500,
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                '3. ${l10n?.onboardingStepChildren ?? 'Children'}',
+                textAlign: TextAlign.right,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: currentStep == 3
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: currentStep == 3 ? FontWeight.w700 : FontWeight.w500,
+                    ),
+              ),
+            ),
+          ],
         ),
       ],
     );

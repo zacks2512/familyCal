@@ -12,7 +12,9 @@ import 'providers/locale_provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class FamilyCalApp extends StatelessWidget {
-  const FamilyCalApp({super.key});
+  const FamilyCalApp({super.key, this.showSetupWelcome = false});
+
+  final bool showSetupWelcome;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +80,7 @@ class FamilyCalApp extends StatelessWidget {
               contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
             ),
           ),
-          home: const HomeShell(),
+          home: HomeShell(showSetupWelcome: showSetupWelcome),
         );
       },
     );
@@ -101,7 +103,9 @@ class FamilyCalApp extends StatelessWidget {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.showSetupWelcome = false});
+
+  final bool showSetupWelcome;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -115,6 +119,53 @@ class _HomeShellState extends State<HomeShell> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showSetupWelcome) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final l10n = AppLocalizations.of(context);
+        showModalBottomSheet(
+          context: context,
+          showDragHandle: true,
+          builder: (context) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n?.welcomeAfterSetupTitle ?? 'Welcome to FamilyCal!',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n?.welcomeAfterSetupBody ??
+                        'Tap + to add your first event. Swipe to change months.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n?.gotIt ?? 'Got it'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      });
+    }
   }
 
   @override
