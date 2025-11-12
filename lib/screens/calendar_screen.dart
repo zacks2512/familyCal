@@ -1798,40 +1798,63 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.repeat),
-            title: const Text('Repeat'),
-            subtitle: Text(_getRepeatText()),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showRepeatDialog(context),
-          ),
-          if (_repeatOption != RepeatOption.noRepeat) ...[
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.event_outlined),
-              title: Text(_endDate == null
-                  ? 'Repeat until... (optional)'
-                  : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
-              trailing: _endDate != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _endDate = null),
-                    )
-                  : null,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate:
-                      _endDate ?? widget.date.add(const Duration(days: 90)),
-                  firstDate: widget.date,
-                  lastDate: widget.date.add(const Duration(days: 365 * 2)),
-                );
-                if (picked != null) {
-                  setState(() => _endDate = picked);
-                }
-              },
+          // Inline repeat dropdown
+          DropdownButtonFormField<RepeatOption>(
+            value: _repeatOption,
+            decoration: const InputDecoration(
+              labelText: 'Repeat',
+              prefixIcon: Icon(Icons.repeat),
             ),
-          ],
+            items: RepeatOption.values
+                .map((option) => DropdownMenuItem(
+                      value: option,
+                      child: Text({
+                        RepeatOption.noRepeat: "Don't repeat",
+                        RepeatOption.daily: 'Every 1 day',
+                        RepeatOption.weekly: 'Every 1 week',
+                        RepeatOption.monthly: 'Every 1 month',
+                        RepeatOption.yearly: 'Every 1 year',
+                      }[option]!),
+                    ))
+                .toList(),
+            onChanged: (value) => setState(() => _repeatOption = value!),
+          ),
+          // Animated end date field (appears when repeat is enabled)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _repeatOption != RepeatOption.noRepeat
+                ? Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      ListTile(
+                        leading: const Icon(Icons.event_outlined),
+                        title: Text(_endDate == null
+                            ? 'Repeat until... (optional)'
+                            : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
+                        trailing: _endDate != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () => setState(() => _endDate = null),
+                              )
+                            : null,
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                _endDate ?? widget.date.add(const Duration(days: 90)),
+                            firstDate: widget.date,
+                            lastDate: widget.date.add(const Duration(days: 365 * 2)),
+                          );
+                          if (picked != null) {
+                            setState(() => _endDate = picked);
+                          }
+                        },
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1892,51 +1915,6 @@ class _QuickAddFormState extends State<_QuickAddForm> {
     );
   }
 
-  String _getRepeatText() {
-    switch (_repeatOption) {
-      case RepeatOption.noRepeat:
-        return "Don't repeat";
-      case RepeatOption.daily:
-        return 'Every 1 day';
-      case RepeatOption.weekly:
-        return 'Every 1 week';
-      case RepeatOption.monthly:
-        return 'Every 1 month';
-      case RepeatOption.yearly:
-        return 'Every 1 year';
-    }
-  }
-
-  void _showRepeatDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Repeat'),
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final opt in RepeatOption.values)
-              RadioListTile<RepeatOption>(
-                value: opt,
-                groupValue: _repeatOption,
-                onChanged: (value) {
-                  setState(() => _repeatOption = value!);
-                  Navigator.of(context).pop();
-                },
-                title: Text({
-                      RepeatOption.noRepeat: "Don't repeat",
-                      RepeatOption.daily: 'Every 1 day',
-                      RepeatOption.weekly: 'Every 1 week',
-                      RepeatOption.monthly: 'Every 1 month',
-                      RepeatOption.yearly: 'Every 1 year',
-                    }[opt]!),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _TimeField extends StatelessWidget {
@@ -1952,26 +1930,203 @@ class _TimeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      ),
-      onPressed: () async {
-        final picked = await showTimePicker(
-          context: context,
-          initialTime: time,
-        );
-        if (picked != null) onChanged(picked);
+    return GestureDetector(
+      onTap: () async {
+        final picked = await _showCustomTimePicker(context, time);
+        if (picked != null) {
+          onChanged(picked);
+        }
       },
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            time.format(context),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<TimeOfDay?> _showCustomTimePicker(BuildContext context, TimeOfDay initialTime) {
+    return showDialog<TimeOfDay>(
+      context: context,
+      builder: (context) => _CustomTimePicker(
+        initialTime: initialTime,
+        onTimeChanged: (time) {
+          Navigator.of(context).pop(time);
+        },
+      ),
+    );
+  }
+}
+
+class _CustomTimePicker extends StatefulWidget {
+  const _CustomTimePicker({
+    required this.initialTime,
+    required this.onTimeChanged,
+  });
+
+  final TimeOfDay initialTime;
+  final ValueChanged<TimeOfDay> onTimeChanged;
+
+  @override
+  State<_CustomTimePicker> createState() => _CustomTimePickerState();
+}
+
+class _CustomTimePickerState extends State<_CustomTimePicker> {
+  late int selectedHour;
+  late int selectedMinute;
+  late FixedExtentScrollController hourController;
+  late FixedExtentScrollController minuteController;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedHour = widget.initialTime.hour;
+    selectedMinute = widget.initialTime.minute;
+    hourController = FixedExtentScrollController(initialItem: selectedHour);
+    minuteController = FixedExtentScrollController(initialItem: selectedMinute);
+  }
+
+  @override
+  void dispose() {
+    hourController.dispose();
+    minuteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select time',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 24),
+            // Time picker with spinners
+            SizedBox(
+              height: 160,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Hours
+                  SizedBox(
+                    width: 80,
+                    child: ListWheelScrollView(
+                      controller: hourController,
+                      itemExtent: 60,
+                      physics: const FixedExtentScrollPhysics(),
+                      diameterRatio: 1.5,
+                      onSelectedItemChanged: (index) {
+                        setState(() => selectedHour = index);
+                      },
+                      children: List.generate(
+                        24,
+                        (i) => Center(
+                          child: Text(
+                            i.toString().padLeft(2, '0'),
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: selectedHour == i
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Separator
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      ':',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  // Minutes
+                  SizedBox(
+                    width: 80,
+                    child: ListWheelScrollView(
+                      controller: minuteController,
+                      itemExtent: 60,
+                      physics: const FixedExtentScrollPhysics(),
+                      diameterRatio: 1.5,
+                      onSelectedItemChanged: (index) {
+                        setState(() => selectedMinute = index);
+                      },
+                      children: List.generate(
+                        60,
+                        (i) => Center(
+                          child: Text(
+                            i.toString().padLeft(2, '0'),
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: selectedMinute == i
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 12),
+                FilledButton(
+                  onPressed: () {
+                    widget.onTimeChanged(
+                      TimeOfDay(hour: selectedHour, minute: selectedMinute),
+                    );
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

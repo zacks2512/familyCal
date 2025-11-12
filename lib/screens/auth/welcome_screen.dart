@@ -284,21 +284,6 @@ class RegisterOptionsScreen extends StatelessWidget {
                 onPressed: onGoogleSignIn,
               ),
               
-              const SizedBox(height: 12),
-              
-              // Facebook Sign-In (not yet implemented)
-              _SocialButton(
-                icon: Icons.facebook,
-                label: (AppLocalizations.of(context)?.continueWithFacebook) ?? 'Continue with Facebook',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text((AppLocalizations.of(context)?.facebookComingSoon) ?? 'Facebook Sign-In coming soon!'),
-                    ),
-                  );
-                },
-              ),
-              
               const SizedBox(height: 24),
               
               // Divider
@@ -525,23 +510,6 @@ class _LoginOptionsScreenState extends State<LoginOptionsScreen> {
                 icon: Icons.g_mobiledata,
                 label: (AppLocalizations.of(context)?.continueWithGoogle) ?? 'Continue with Google',
                 onPressed: _isLoading ? null : _handleGoogleLogin,
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Facebook Sign-In (not yet implemented)
-              _SocialButton(
-                icon: Icons.facebook,
-                label: (AppLocalizations.of(context)?.continueWithFacebook) ?? 'Continue with Facebook',
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text((AppLocalizations.of(context)?.facebookComingSoon) ?? 'Facebook Sign-In coming soon!'),
-                          ),
-                        );
-                      },
               ),
               
               const SizedBox(height: 24),
