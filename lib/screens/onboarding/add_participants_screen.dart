@@ -140,7 +140,7 @@ class _AddParticipantsScreenState extends State<AddParticipantsScreen> {
               
               Text(
                 l10n?.inviteFamilyMembersSubtitle ??
-                    'Send invite links to your partner, grandparents, or anyone who helps',
+                'Send invite links to your partner, grandparents, or anyone who helps',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -240,7 +240,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             l10n?.noInvitesYetSubtitle ??
-                'Send links to people who will help\ncoordinate your family schedules',
+            'Send links to people who will help\ncoordinate your family schedules',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

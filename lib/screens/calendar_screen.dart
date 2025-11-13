@@ -27,6 +27,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
   EventRole? _quickAddRole;
   String? _quickAddChildId;
   String? _quickAddResponsibleId;
+  bool _showSwipeHint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-hide swipe hint after 2 seconds on first view
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _showSwipeHint = false);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -40,6 +52,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final state = context.watch<FamilyCalState>();
     final constraints = MediaQuery.sizeOf(context);
     final isCompact = constraints.width < 600;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
 
     if (_lastSelectedDay != state.selectedCalendarDay) {
       _lastSelectedDay = state.selectedCalendarDay;
@@ -63,7 +76,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     onPreviousMonth: () => state.jumpMonth(-1),
                     onToday: () => state.jumpToToday(),
                     monthLabel:
-                        DateFormat('MMMM yyyy').format(state.visibleMonth),
+                        DateFormat('MMMM yyyy', localeName).format(state.visibleMonth),
                     viewMode: state.calendarViewMode,
                     onViewModeChanged: (mode) =>
                         context.read<FamilyCalState>().setCalendarViewMode(mode),
@@ -82,10 +95,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }
                         }
                       },
-                      child: _buildView(
-                        context: context,
-                        state: state,
-                        isCompact: compact,
+                    child: _buildView(
+                      context: context,
+                      state: state,
+                      isCompact: compact,
                       ),
                     ),
                   ),
@@ -147,20 +160,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
         );
 
       case CalendarViewMode.week:
-      return _WeekView(
-        selectedDay: state.selectedCalendarDay,
-        instancesForDay: state.instancesForDay,
+        return _WeekView(
+          selectedDay: state.selectedCalendarDay,
+          instancesForDay: state.instancesForDay,
         onSelectDay: (day) => state.selectCalendarDay(day), // no popup on day tap
-        isCompact: isCompact,
-        dayDrawer: _CalendarDayDrawer(
-          day: state.selectedCalendarDay,
           isCompact: isCompact,
+          dayDrawer: _CalendarDayDrawer(
+            day: state.selectedCalendarDay,
+            isCompact: isCompact,
           showQuickAddInline: false,                // ← always button-only in Week
           onOpenQuickAdd: () => _openQuickAddSheet(context, state), // ← open sheet
-          onSubmitQuickAdd: (event) => _submitQuickAdd(context, state, event),
+            onSubmitQuickAdd: (event) => _submitQuickAdd(context, state, event),
           onCloseQuickAdd: () {}, // not used in Week since no inline form
-        ),
-      );
+          ),
+        );
 
 
       case CalendarViewMode.day:
@@ -212,15 +225,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: _CalendarDayDrawer(
-                day: day,
-                isCompact: true,
+          child: _CalendarDayDrawer(
+            day: day,
+            isCompact: true,
                 showQuickAddInline: false,
                 onOpenQuickAdd: () => _openQuickAddSheet(context, state),
-                onSubmitQuickAdd: (event) =>
-                    _submitQuickAdd(context, state, event, closeSheet: true),
-                onCloseQuickAdd: () => Navigator.of(context).maybePop(),
-              ),
+            onSubmitQuickAdd: (event) =>
+                _submitQuickAdd(context, state, event, closeSheet: true),
+            onCloseQuickAdd: () => Navigator.of(context).maybePop(),
+          ),
             );
           },
         );
@@ -285,25 +298,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   const double kMaxFormWidth = 600;
                   return SingleChildScrollView(
                     controller: scrollController,
-                    padding: EdgeInsets.only(
+          padding: EdgeInsets.only(
                       left: 16,
                       right: 16,
                       top: 12,
                       bottom: mq.viewInsets.bottom + 16,
-                    ),
+          ),
                     child: Center(
                       child: ConstrainedBox(
                         constraints:
                             const BoxConstraints(maxWidth: kMaxFormWidth),
-                        child: _QuickAddForm(
-                          titleController: _titleController,
-                          initialStart: _quickAddStart!,
-                          initialEnd: _quickAddEnd!,
-                          initialRole: _quickAddRole!,
+            child: _QuickAddForm(
+              titleController: _titleController,
+              initialStart: _quickAddStart!,
+              initialEnd: _quickAddEnd!,
+              initialRole: _quickAddRole!,
                           date:
                               context.read<FamilyCalState>().selectedCalendarDay,
-                          childId: _quickAddChildId,
-                          responsibleId: _quickAddResponsibleId,
+              childId: _quickAddChildId,
+              responsibleId: _quickAddResponsibleId,
                           onSubmit: (event) => _submitQuickAdd(
                               context, state, event,
                               closeSheet: true),
@@ -311,8 +324,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                     ),
                   );
-                },
-              ),
+              },
+            ),
             );
           },
         );
@@ -348,6 +361,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     QuickAddEvent event, {
     bool closeSheet = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     // Normalize no-repeat as a single occurrence (endDate == startDate)
     final isNoRepeat = event.repeatOption == RepeatOption.noRepeat;
     final computedWeekdays =
@@ -387,24 +401,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
         try {
           await repo.createEvent(
             familyId: familyId,
-            childId: event.childId,
+      childId: event.childId,
             place: placeName,
-            role: event.role,
+      role: event.role,
             recurrence: recurrence,
             startTime: fmt(event.start),
             endTime: fmt(event.end),
             startDate: DateUtils.dateOnly(event.date),
             weekdays: computedWeekdays.toList(),
             responsibleMemberId: (event.responsibleMemberId?.isEmpty ?? true)
-                ? null
-                : event.responsibleMemberId,
+          ? null
+          : event.responsibleMemberId,
             endDate: computedEndDate != null ? DateUtils.dateOnly(computedEndDate) : null,
             title: event.title,
             notes: null,
           );
           if (!mounted) return;
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Added ${event.title}')));
+              .showSnackBar(SnackBar(content: Text(l10n.eventAddedMessage(event.title))));
           if (closeSheet) {
             Navigator.of(context).maybePop();
           } else {
@@ -475,7 +489,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     state.addEvent(newEvent);
 
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Added ${event.title}')));
+        .showSnackBar(SnackBar(content: Text(l10n.eventAddedMessage(event.title))));
     if (closeSheet) {
       Navigator.of(context).maybePop();
     } else {
@@ -569,13 +583,13 @@ class _CalendarHeader extends StatelessWidget {
                   color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Center(
+            child: Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Flexible(
-                        child: Text(
-                          monthLabel,
+              child: Text(
+                monthLabel,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w400,
                           ),
@@ -622,13 +636,13 @@ class _CalendarHeader extends StatelessWidget {
 
     if (isCompact) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // Replace with localized segmented
-            navigationRow,
-            const SizedBox(height: 12),
+              navigationRow,
+              const SizedBox(height: 12),
             segmentedLocalized,
           ],
         ),
@@ -672,8 +686,6 @@ class _MonthView extends StatelessWidget {
   final VoidCallback onOpenDetail;
   final Widget dayDrawer;
 
-  static const _weekdayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
   @override
   Widget build(BuildContext context) {
     final days = _buildDaysSundayStart(visibleMonth);
@@ -698,33 +710,33 @@ class _MonthView extends StatelessWidget {
                 _weekdayHeader(context),
                 Expanded(
                   child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: cols,
                       childAspectRatio: aspect,
-                    ),
-                    itemCount: days.length,
-                    itemBuilder: (context, index) {
-                      final day = days[index];
-                      final events = instancesForDay(day);
-                      final isSelected = DateUtils.isSameDay(day, selectedDay);
-                      final inMonth = DateUtils.isSameMonth(day, visibleMonth);
-                      final hasWarning = events.any(
+      ),
+      itemCount: days.length,
+      itemBuilder: (context, index) {
+        final day = days[index];
+        final events = instancesForDay(day);
+        final isSelected = DateUtils.isSameDay(day, selectedDay);
+        final inMonth = DateUtils.isSameMonth(day, visibleMonth);
+        final hasWarning = events.any(
                         (event) => state.memberByIdOrNull(event.event.responsibleMemberId) == null,
-                      );
-                      return _MonthCell(
-                        day: day,
-                        isSelected: isSelected,
-                        inMonth: inMonth,
-                        events: events,
-                        hasWarning: hasWarning,
+        );
+        return _MonthCell(
+          day: day,
+          isSelected: isSelected,
+          inMonth: inMonth,
+          events: events,
+          hasWarning: hasWarning,
                         onTap: () => onSelectDay(day),
-                      );
-                    },
+        );
+      },
                   ),
                 ),
-              ],
-            ),
+            ],
+          ),
           );
         },
       );
@@ -794,6 +806,15 @@ class _MonthView extends StatelessWidget {
 
   /// Header row: S M T W T F S
   Widget _weekdayHeader(BuildContext context) {
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    final baseDate = DateTime(2023, 1, 1);
+    final weekdayLetters = List.generate(
+      7,
+      (index) => DateFormat('EEEEE', localeName).format(
+        baseDate.add(Duration(days: index)),
+      ),
+    );
+
     final style = Theme.of(context).textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w700,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -806,7 +827,7 @@ class _MonthView extends StatelessWidget {
           7,
           (i) => Expanded(
             child: Center(
-              child: Text(_weekdayLetters[i], style: style),
+              child: Text(weekdayLetters[i], style: style),
             ),
           ),
         ),
@@ -842,15 +863,14 @@ class _MonthCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final theme = Theme.of(context);
+    final theme = Theme.of(context);
         final bgColor =
             isSelected ? theme.colorScheme.primary.withOpacity(0.08) : Colors.transparent;
-        final borderColor = isSelected
-            ? theme.colorScheme.primary
-            : theme.dividerColor.withOpacity(0.4);
+    final borderColor = isSelected
+        ? theme.colorScheme.primary
+        : theme.dividerColor.withOpacity(0.4);
+    final calendarState = context.read<FamilyCalState>();
 
-        final calendarState = context.read<FamilyCalState>();
-        
         // Dynamically determine sizes based on available space
         final cellHeight = constraints.maxHeight;
         final cellWidth = constraints.maxWidth;
@@ -871,23 +891,26 @@ class _MonthCell extends StatelessWidget {
         final remainingCount =
             events.length > maxVisible ? events.length - maxVisible : 0;
 
-        return Semantics(
-          label:
-              'Day ${DateFormat('EEEE, MMMM d').format(day)} with ${events.length} events'
-              '${hasWarning ? ' and events missing assignment' : ''}',
-          button: true,
-          child: InkWell(
-            onTap: onTap,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: borderColor, width: 0.7),
-                color: bgColor,
-              ),
+        final localeName = Localizations.localeOf(context).toLanguageTag();
+        final dayLabel = DateFormat('EEEE, MMMM d', localeName).format(day);
+
+    return Semantics(
+      label:
+              'Day $dayLabel with ${events.length} events'
+          '${hasWarning ? ' and events missing assignment' : ''}',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: 0.7),
+            color: bgColor,
+          ),
               padding: EdgeInsets.all(padding),
-              child: Column(
+          child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                   Text(
                     '${day.day}',
                     style: TextStyle(
@@ -902,10 +925,10 @@ class _MonthCell extends StatelessWidget {
                     Flexible(
                       child: Padding(
                         padding: EdgeInsets.only(top: padding * 0.5),
-                        child: Column(
+                child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                             for (final event in visibleEvents)
                               Flexible(
                                 child: Padding(
@@ -922,7 +945,7 @@ class _MonthCell extends StatelessWidget {
                                       ),
                                       SizedBox(width: padding * 0.5),
                                       Flexible(
-                                        child: Text(
+                        child: Text(
                                           event.event.title?.isNotEmpty == true
                                               ? event.event.title!
                                               : calendarState
@@ -934,9 +957,9 @@ class _MonthCell extends StatelessWidget {
                                             fontSize: eventFontSize,
                                             fontWeight: FontWeight.w500,
                                             color: calendarState.childById(event.event.childId).color,
-                                          ),
-                                        ),
-                                      ),
+                          ),
+                        ),
+                      ),
                                     ],
                                   ),
                                 ),
@@ -950,8 +973,8 @@ class _MonthCell extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            if (hasWarning)
-                              Tooltip(
+                    if (hasWarning)
+                      Tooltip(
                                 message: AppLocalizations.of(context)!.eventNeedsResponsible,
                                 child: Icon(Icons.error,
                                     size: iconSize, color: theme.colorScheme.error),
@@ -977,7 +1000,7 @@ double _weekStripHeight(BuildContext context) {
   final theme = Theme.of(context);
   final scale = MediaQuery.textScaleFactorOf(context);
 
-  final weekdayFs = (theme.textTheme.bodyMedium?.fontSize ?? 14) * scale; // “S”
+  final weekdayFs = (theme.textTheme.bodyMedium?.fontSize ?? 14) * scale; // "S"
   final dayFs = (theme.textTheme.titleLarge?.fontSize ?? 22) * scale;      // 1..31
 
   const vPad = 8.0 * 2; // inner padding in card
@@ -1088,11 +1111,13 @@ class _WeekDayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     final state = context.read<FamilyCalState>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Semantics(
-      label:
-          '${DateFormat('EEEE').format(day)} ${events.length} events ${hasWarning ? 'includes unassigned events' : ''}',
+                          label:
+          '${DateFormat('EEEE', localeName).format(day)} ${events.length} events ${hasWarning ? 'includes unassigned events' : ''}',
       button: true,
       child: InkWell(
         onTap: onTap,
@@ -1117,7 +1142,7 @@ class _WeekDayCard extends StatelessWidget {
             children: [
               // Single-letter weekday
               Text(
-                DateFormat('EEEEE').format(day),
+                DateFormat('EEEEE', localeName).format(day),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium
@@ -1130,9 +1155,12 @@ class _WeekDayCard extends StatelessWidget {
               SizedBox(
                 height: 22,
                 child: events.isEmpty
-                    ? const Center(
-                        child: Text('No events',
-                            style: TextStyle(fontSize: 12)))
+                    ? Center(
+                        child: Text(
+                          l10n.noEventsShort,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      )
                     : Row(
                         children: [
                           _EventDot(color: state.childById(events.first.event.childId).color),
@@ -1145,10 +1173,10 @@ class _WeekDayCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.labelSmall,
                               textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                  ],
+                ),
               ),
 
               if (hasWarning)
@@ -1156,7 +1184,7 @@ class _WeekDayCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: Icon(Icons.warning_amber_rounded,
                       size: 14, color: theme.colorScheme.error),
-                ),
+              ),
             ],
           ),
         ),
@@ -1201,7 +1229,9 @@ class _CalendarDayDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<FamilyCalState>();
     final events = state.instancesForDay(day);
-    final dayLabel = DateFormat('EEEE, MMM d').format(day);
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    final l10n = AppLocalizations.of(context)!;
+    final dayLabel = DateFormat('EEEE, MMM d', localeName).format(day);
 
     return Card(
       margin: EdgeInsets.symmetric(horizontal: isCompact ? 16 : 0, vertical: 12),
@@ -1223,18 +1253,18 @@ class _CalendarDayDrawer extends StatelessWidget {
                   ),
                 ),
                 if (!(isCompact && showQuickAddInline))
-                  FilledButton.icon(
+                FilledButton.icon(
                     onPressed: onOpenQuickAdd,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Event'),
-                  ),
+                  icon: const Icon(Icons.add),
+                    label: Text(l10n.addEvent),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             if (events.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('No events yet. Add one to get started.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(l10n.noEventsYetMessage),
               )
             else
               Column(
@@ -1274,7 +1304,8 @@ class _DayEventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<FamilyCalState>();
-    final format = DateFormat('h:mm a');
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    final format = DateFormat.jm(localeName);
     final start = format.format(instance.windowStart);
     final end = format.format(instance.windowEnd);
     final child = state.childById(instance.event.childId);
@@ -1314,7 +1345,7 @@ class _DayEventTile extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Edit event',
+                  tooltip: AppLocalizations.of(context)!.editEvent,
                   onPressed: () => _showEditEventSheet(context, state, instance),
                   icon: const Icon(Icons.edit_outlined),
                 ),
@@ -1342,7 +1373,7 @@ class _DayEventTile extends StatelessWidget {
                         Theme.of(context).colorScheme.error.withOpacity(0.15),
                     avatar: Icon(Icons.warning_amber_rounded,
                         size: 16, color: Theme.of(context).colorScheme.error),
-                    label: const Text('Assign pickup/drop-off'),
+                    label: Text(AppLocalizations.of(context)!.addEventAssignSegment),
                   )
                 else
                   Chip(
@@ -1400,8 +1431,8 @@ class _DayEventTile extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      children: [
+          child: Column(
+            children: [
                         _EditEventForm(
                           key: formKey,
                           event: event,
@@ -1437,35 +1468,42 @@ class _DayEventTile extends StatelessWidget {
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Updated ${updatedEvent.title}')),
-                              );
-                            }
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(context)!
+                                        .eventUpdatedMessage(
+                                      updatedEvent.title ?? AppLocalizations.of(context)!.addEventTitleLabel,
+            ),
+          ),
+        ),
+    );
+  }
                           },
                         ),
                         const SizedBox(height: 16),
                         Row(
-                          children: [
+            children: [
                             TextButton.icon(
                               onPressed: () {
                                 Navigator.of(context).pop();
                                 _showDeleteConfirmation(context, state, instance);
                               },
                               icon: const Icon(Icons.delete_outline),
-                              label: const Text('Delete'),
+                              label: Text(AppLocalizations.of(context)!.delete),
                               style: TextButton.styleFrom(
                                 foregroundColor: Theme.of(context).colorScheme.error,
                               ),
-                            ),
-                            const Spacer(),
+              ),
+              const Spacer(),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
+                              child: Text(AppLocalizations.of(context)!.cancel),
+                        ),
                             const SizedBox(width: 8),
                             FilledButton(
                               onPressed: () => formKey.currentState?.saveEvent(),
-                              child: const Text('Save'),
-                            ),
+                              child: Text(AppLocalizations.of(context)!.save),
+                          ),
                           ],
                         ),
                       ],
@@ -1488,12 +1526,15 @@ class _DayEventTile extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete event?'),
-        content: Text('Are you sure you want to delete "${instance.event.title}"?'),
+        title: Text(AppLocalizations.of(context)!.deleteEventTitle),
+        content: Text(
+          AppLocalizations.of(context)!
+              .deleteEventConfirmation(instance.event.title ?? ''),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -1509,15 +1550,18 @@ class _DayEventTile extends StatelessWidget {
               if (context.mounted) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Event deleted')),
+                  SnackBar(
+                    content:
+                        Text(AppLocalizations.of(context)!.eventDeletedMessage),
+                  ),
                 );
               }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
-          ),
+            child: Text(AppLocalizations.of(context)!.delete),
+        ),
         ],
       ),
     );
@@ -1547,7 +1591,9 @@ class _DayView extends StatelessWidget{
 
   @override
   Widget build(BuildContext context) {
-    final dayLabel = DateFormat('EEEE, MMM d').format(day);
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    final l10n = AppLocalizations.of(context)!;
+    final dayLabel = DateFormat('EEEE, MMM d', localeName).format(day);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       child: Column(
@@ -1567,15 +1613,15 @@ class _DayView extends StatelessWidget{
               FilledButton.icon(
                 onPressed: onOpenQuickAdd,
                 icon: const Icon(Icons.add),
-                label: const Text('Add Event'),
+                label: Text(l10n.addEvent),
               ),
             ],
           ),
           const SizedBox(height: 16),
           if (events.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('No events scheduled for this day.'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(l10n.noEventsScheduledMessage),
             )
           else
             ...events.map(
@@ -1708,12 +1754,15 @@ class _QuickAddFormState extends State<_QuickAddForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     final state = context.watch<FamilyCalState>();
+
     if (state.children.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
-          'Add at least one child before scheduling events.',
+          l10n.addEventNeedsChild,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -1725,16 +1774,16 @@ class _QuickAddFormState extends State<_QuickAddForm> {
         children: [
           TextFormField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Title'),
+            decoration: InputDecoration(labelText: l10n.addEventTitleLabel),
             validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Enter a title' : null,
+                value == null || value.trim().isEmpty ? l10n.addEventTitleRequired : null,
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: _TimeField(
-                  label: 'Start',
+                  label: l10n.addEventStartLabel,
                   time: _start,
                   onChanged: (value) => setState(() {
                     _start = value;
@@ -1750,7 +1799,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
               const SizedBox(width: 12),
               Expanded(
                 child: _TimeField(
-                  label: 'End',
+                  label: l10n.addEventEndLabel,
                   time: _end,
                   onChanged: (value) => setState(() => _end = value),
                 ),
@@ -1760,61 +1809,60 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _childId,
-            decoration: const InputDecoration(labelText: 'Child'),
+            decoration: InputDecoration(labelText: l10n.addEventChildLabel),
             items: state.children
                 .map((child) =>
                     DropdownMenuItem(value: child.id, child: Text(child.displayName)))
                 .toList(),
             onChanged: (value) => setState(() => _childId = value),
-            validator: (value) => value == null ? 'Select a child' : null,
+            validator: (value) => value == null ? l10n.addEventChildRequired : null,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _placeController,
-            decoration: const InputDecoration(
-              labelText: 'Place (optional)',
-              hintText: 'School, gym, home, etc.',
-            ),
+            decoration: InputDecoration(
+              labelText: l10n.addEventPlaceLabel,
+              hintText: l10n.addEventPlaceHint,
+                  ),
           ),
           const SizedBox(height: 12),
           SegmentedButton<EventRole>(
             segments: EventRole.values
-                .map((role) => ButtonSegment(value: role, label: Text(role.label)))
-                .toList(),
+                .map((role) {
+              final roleLabels = {
+                EventRole.dropOff: l10n.eventRoleDropOff,
+                EventRole.pickUp: l10n.eventRolePickUp,
+              };
+              return ButtonSegment(value: role, label: Text(roleLabels[role]!));
+            }).toList(),
             selected: {_role},
             onSelectionChanged: (value) => setState(() => _role = value.first),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String?>(
             value: _responsibleId,
-            decoration: const InputDecoration(labelText: 'Assign to'),
+            decoration: InputDecoration(labelText: l10n.addEventAssignLabel),
             items: [
-              const DropdownMenuItem(value: null, child: Text('Unassigned')),
+              DropdownMenuItem(value: null, child: Text(l10n.addEventUnassigned)),
               ...state.members.map(
                   (m) => DropdownMenuItem(value: m.id, child: Text(m.displayName))),
             ],
             onChanged: (value) => setState(() => _responsibleId = value),
-          ),
+              ),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 8),
           // Inline repeat dropdown
           DropdownButtonFormField<RepeatOption>(
             value: _repeatOption,
-            decoration: const InputDecoration(
-              labelText: 'Repeat',
+            decoration: InputDecoration(
+              labelText: l10n.addEventRepeatLabel,
               prefixIcon: Icon(Icons.repeat),
             ),
             items: RepeatOption.values
                 .map((option) => DropdownMenuItem(
                       value: option,
-                      child: Text({
-                        RepeatOption.noRepeat: "Don't repeat",
-                        RepeatOption.daily: 'Every 1 day',
-                        RepeatOption.weekly: 'Every 1 week',
-                        RepeatOption.monthly: 'Every 1 month',
-                        RepeatOption.yearly: 'Every 1 year',
-                      }[option]!),
+                      child: Text(repeatOptionLabel(l10n, option)),
                     ))
                 .toList(),
             onChanged: (value) => setState(() => _repeatOption = value!),
@@ -1829,9 +1877,13 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                       const SizedBox(height: 12),
                       ListTile(
                         leading: const Icon(Icons.event_outlined),
-                        title: Text(_endDate == null
-                            ? 'Repeat until... (optional)'
-                            : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
+                        title: Text(
+                          _endDate == null
+                              ? l10n.addEventRepeatUntilOptional
+                              : l10n.addEventRepeatUntilDate(
+                                  DateFormat.yMMMd(localeName).format(_endDate!),
+                                ),
+                        ),
                         trailing: _endDate != null
                             ? IconButton(
                                 icon: const Icon(Icons.clear),
@@ -1859,7 +1911,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
           Row(
             children: [
               if (widget.onClose != null)
-                TextButton(onPressed: widget.onClose, child: const Text('Cancel')),
+                TextButton(onPressed: widget.onClose, child: Text(l10n.cancel)),
               const Spacer(),
               FilledButton(
                 onPressed: () {
@@ -1867,8 +1919,8 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                   if (_end.hour * 60 + _end.minute <=
                       _start.hour * 60 + _start.minute) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('End time must be after the start time.'),
+                      SnackBar(
+                        content: Text(l10n.addEventEndTimeError),
                       ),
                     );
                     return;
@@ -1906,7 +1958,7 @@ class _QuickAddFormState extends State<_QuickAddForm> {
                     ),
                   );
                 },
-                child: const Text('Save'),
+                child: Text(l10n.save),
               ),
             ],
           ),
@@ -1943,10 +1995,10 @@ class _TimeField extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -1962,8 +2014,8 @@ class _TimeField extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -2019,6 +2071,7 @@ class _CustomTimePickerState extends State<_CustomTimePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -2028,7 +2081,7 @@ class _CustomTimePickerState extends State<_CustomTimePicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Select time',
+              l10n.addEventSelectTimeTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 24),
@@ -2112,7 +2165,7 @@ class _CustomTimePickerState extends State<_CustomTimePicker> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 const SizedBox(width: 12),
                 FilledButton(
@@ -2121,7 +2174,7 @@ class _CustomTimePickerState extends State<_CustomTimePicker> {
                       TimeOfDay(hour: selectedHour, minute: selectedMinute),
                     );
                   },
-                  child: const Text('OK'),
+                  child: Text(l10n.ok),
                 ),
               ],
             ),
@@ -2203,6 +2256,8 @@ class _EditEventFormState extends State<_EditEventForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     final state = context.watch<FamilyCalState>();
     
     return Form(
@@ -2212,15 +2267,16 @@ class _EditEventFormState extends State<_EditEventForm> {
         children: [
           TextFormField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Title'),
-            validator: (value) => value == null || value.trim().isEmpty ? 'Enter a title' : null,
+            decoration: InputDecoration(labelText: l10n.addEventTitleLabel),
+            validator: (value) =>
+                value == null || value.trim().isEmpty ? l10n.addEventTitleRequired : null,
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: _TimeField(
-                  label: 'Start',
+                  label: l10n.addEventStartLabel,
                   time: _start,
                   onChanged: (value) => setState(() {
                     _start = value;
@@ -2235,7 +2291,7 @@ class _EditEventFormState extends State<_EditEventForm> {
               const SizedBox(width: 12),
               Expanded(
                 child: _TimeField(
-                  label: 'End',
+                  label: l10n.addEventEndLabel,
                   time: _end,
                   onChanged: (value) => setState(() => _end = value),
                 ),
@@ -2245,31 +2301,38 @@ class _EditEventFormState extends State<_EditEventForm> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _childId,
-            decoration: const InputDecoration(labelText: 'Child'),
+            decoration: InputDecoration(labelText: l10n.addEventChildLabel),
             items: state.children
                 .map((child) => DropdownMenuItem(value: child.id, child: Text(child.displayName)))
                 .toList(),
             onChanged: (value) => setState(() => _childId = value),
-            validator: (value) => value == null ? 'Select a child' : null,
+            validator: (value) => value == null ? l10n.addEventChildRequired : null,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _placeController,
-            decoration: const InputDecoration(
-              labelText: 'Place (optional)',
-              hintText: 'School, gym, home, etc.',
+            decoration: InputDecoration(
+              labelText: l10n.addEventPlaceLabel,
+              hintText: l10n.addEventPlaceHint,
             ),
           ),
           const SizedBox(height: 12),
           SegmentedButton<EventRole>(
-            segments: EventRole.values.map((role) => ButtonSegment(value: role, label: Text(role.label))).toList(),
+            segments: EventRole.values
+                .map((role) {
+              final roleLabels = {
+                EventRole.dropOff: l10n.eventRoleDropOff,
+                EventRole.pickUp: l10n.eventRolePickUp,
+              };
+              return ButtonSegment(value: role, label: Text(roleLabels[role]!));
+            }).toList(),
             selected: {_role},
             onSelectionChanged: (value) => setState(() => _role = value.first),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String?>(
             value: _responsibleId?.isEmpty ?? true ? null : _responsibleId,
-            decoration: const InputDecoration(labelText: 'Assign to'),
+            decoration: InputDecoration(labelText: l10n.addEventAssignLabel),
             items: [
               const DropdownMenuItem(value: null, child: Text('Unassigned')),
               ...state.members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.displayName))),
@@ -2281,18 +2344,20 @@ class _EditEventFormState extends State<_EditEventForm> {
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.repeat),
-            title: const Text('Repeat'),
-            subtitle: Text(_getRepeatText()),
+            title: Text(l10n.addEventRepeatLabel),
+            subtitle: Text(_getRepeatText(l10n)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showRepeatDialog(context),
+            onTap: () => _showRepeatDialog(context, l10n),
           ),
           if (_repeatOption != RepeatOption.noRepeat) ...[
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.event_outlined),
               title: Text(_endDate == null
-                  ? 'Repeat until... (optional)'
-                  : 'Until: ${DateFormat.yMMMd().format(_endDate!)}'),
+                  ? l10n.addEventRepeatUntilOptional
+                  : l10n.addEventRepeatUntilDate(
+                      DateFormat.yMMMd(localeName).format(_endDate!),
+                    )),
               trailing: _endDate != null
                   ? IconButton(
                       icon: const Icon(Icons.clear),
@@ -2317,26 +2382,15 @@ class _EditEventFormState extends State<_EditEventForm> {
     );
   }
 
-  String _getRepeatText() {
-    switch (_repeatOption) {
-      case RepeatOption.noRepeat:
-        return "Don't repeat";
-      case RepeatOption.daily:
-        return 'Every 1 day';
-      case RepeatOption.weekly:
-        return 'Every 1 week';
-      case RepeatOption.monthly:
-        return 'Every 1 month';
-      case RepeatOption.yearly:
-        return 'Every 1 year';
-    }
+  String _getRepeatText(AppLocalizations l10n) {
+    return repeatOptionLabel(l10n, _repeatOption);
   }
 
-  void _showRepeatDialog(BuildContext context) {
+  void _showRepeatDialog(BuildContext context, AppLocalizations l10n) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Repeat'),
+        title: Text(l10n.addEventRepeatDialogTitle),
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2349,13 +2403,7 @@ class _EditEventFormState extends State<_EditEventForm> {
                   setState(() => _repeatOption = value!);
                   Navigator.of(context).pop();
                 },
-                title: Text({
-                      RepeatOption.noRepeat: "Don't repeat",
-                      RepeatOption.daily: 'Every 1 day',
-                      RepeatOption.weekly: 'Every 1 week',
-                      RepeatOption.monthly: 'Every 1 month',
-                      RepeatOption.yearly: 'Every 1 year',
-                    }[opt]!),
+                title: Text(repeatOptionLabel(l10n, opt)),
               ),
           ],
         ),
@@ -2368,7 +2416,7 @@ class _EditEventFormState extends State<_EditEventForm> {
     
     if (_end.hour * 60 + _end.minute <= _start.hour * 60 + _start.minute) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after the start time.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.addEventEndTimeError)),
       );
       return;
     }
@@ -2479,6 +2527,7 @@ class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -2526,7 +2575,7 @@ class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
             childAspectRatio: 1.2,
             children: List.generate(12, (index) {
               final month = index + 1;
-              final monthName = DateFormat('MMM').format(DateTime(_selectedYear, month));
+              final monthName = DateFormat('MMM', localeName).format(DateTime(_selectedYear, month));
               final isSelected = month == _selectedMonth && _selectedYear == widget.initialDate.year;
               final isCurrentMonth = month == now.month && _selectedYear == now.year;
               
@@ -2568,5 +2617,124 @@ class _MonthYearPickerSheetState extends State<_MonthYearPickerSheet> {
         ],
       ),
     );
+  }
+}
+
+/// Swipe hint overlay - shows pulsing arrows on left/right edges
+class _SwipeHintOverlay extends StatefulWidget {
+  const _SwipeHintOverlay();
+
+  @override
+  State<_SwipeHintOverlay> createState() => _SwipeHintOverlayState();
+}
+
+class _SwipeHintOverlayState extends State<_SwipeHintOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _fadeAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    return IgnorePointer(
+      child: Container(
+        color: Colors.transparent,
+        child: Stack(
+          children: [
+            // Left arrow hint
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryColor.withOpacity(0.1),
+                      ),
+                      child: Icon(
+                        Icons.chevron_left,
+                        size: 32,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Right arrow hint
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryColor.withOpacity(0.1),
+                      ),
+                      child: Icon(
+                        Icons.chevron_right,
+                        size: 32,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String repeatOptionLabel(AppLocalizations l10n, RepeatOption option) {
+  switch (option) {
+    case RepeatOption.noRepeat:
+      return l10n.addEventRepeatNone;
+    case RepeatOption.daily:
+      return l10n.addEventRepeatDaily;
+    case RepeatOption.weekly:
+      return l10n.addEventRepeatWeekly;
+    case RepeatOption.monthly:
+      return l10n.addEventRepeatMonthly;
+    case RepeatOption.yearly:
+      return l10n.addEventRepeatYearly;
   }
 }

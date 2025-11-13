@@ -262,6 +262,32 @@
   "@today": {
     "description": "Today button label"
   },
+  "addEvent": "Add Event",
+  "@addEvent": {
+    "description": "Add event button label"
+  },
+  "noEventsYetMessage": "No events yet. Add one to get started.",
+  "@noEventsYetMessage": {
+    "description": "Empty state message when a day has no events"
+  },
+  "noEventsScheduledMessage": "No events scheduled for this day.",
+  "@noEventsScheduledMessage": {
+    "description": "Message shown in day view when there are no events"
+  },
+  "noEventsShort": "No events",
+  "@noEventsShort": {
+    "description": "Short message shown when there are no events on a day card"
+  },
+  "eventAddedMessage": "Added {eventTitle}",
+  "@eventAddedMessage": {
+    "description": "Snackbar message shown after creating an event",
+    "placeholders": {
+      "eventTitle": {
+        "type": "String",
+        "example": "Doctor appointment"
+      }
+    }
+  },
   
   "familySetupTitle": "Let's Set Up Your Family",
   "@familySetupTitle": {
@@ -348,7 +374,7 @@
   "@continueSetup": { "description": "Continue setup action" },
   "welcomeAfterSetupTitle": "Welcome to FamilyCal!",
   "@welcomeAfterSetupTitle": { "description": "Welcome bottom sheet title" },
-  "welcomeAfterSetupBody": "Tap + to add your first event. Swipe to change months.",
+  "welcomeAfterSetupBody": "Invite family members in Settings to share your calendar. Then add events together.",
   "@welcomeAfterSetupBody": { "description": "Welcome bottom sheet body" },
   "gotIt": "Got it",
   "@gotIt": { "description": "Dismiss welcome dialog" },
@@ -418,6 +444,127 @@
   "loginCancelled": "Login cancelled",
   "@loginCancelled": { "description": "Shown when the user cancels the Google sign-in flow" },
   "eventNeedsResponsible": "Event needs responsible person",
-  "@eventNeedsResponsible": { "description": "Tooltip for unassigned event warning icon" }
+  "@eventNeedsResponsible": { "description": "Tooltip for unassigned event warning icon" },
+  "save": "Save",
+  "@save": { "description": "Generic save button label" },
+  "ok": "OK",
+  "@ok": { "description": "Generic OK button label" },
+  "addEventNeedsChild": "Add at least one child before scheduling events.",
+  "@addEventNeedsChild": { "description": "Shown in quick add form when there are no children" },
+  "addEventTitleLabel": "Title",
+  "@addEventTitleLabel": { "description": "Label for event title field" },
+  "addEventTitleRequired": "Enter a title",
+  "@addEventTitleRequired": { "description": "Validation error when title is empty" },
+  "addEventStartLabel": "Start",
+  "@addEventStartLabel": { "description": "Label for start time field" },
+  "addEventEndLabel": "End",
+  "@addEventEndLabel": { "description": "Label for end time field" },
+  "addEventChildLabel": "Child",
+  "@addEventChildLabel": { "description": "Label for child dropdown" },
+  "addEventChildRequired": "Select a child",
+  "@addEventChildRequired": { "description": "Validation error when no child selected" },
+  "addEventPlaceLabel": "Place (optional)",
+  "@addEventPlaceLabel": { "description": "Label for place text field" },
+  "addEventPlaceHint": "School, gym, home, etc.",
+  "@addEventPlaceHint": { "description": "Hint text for place field" },
+  "addEventAssignLabel": "Assign to",
+  "@addEventAssignLabel": { "description": "Label for responsible member dropdown" },
+  "addEventUnassigned": "Unassigned",
+  "@addEventUnassigned": { "description": "Dropdown label for unassigned responsible person" },
+  "addEventRepeatLabel": "Repeat",
+  "@addEventRepeatLabel": { "description": "Label for repeat dropdown" },
+  "addEventRepeatNone": "Don't repeat",
+  "@addEventRepeatNone": { "description": "Repeat option: no repeat" },
+  "addEventRepeatDaily": "Every day",
+  "@addEventRepeatDaily": { "description": "Repeat option: daily" },
+  "addEventRepeatWeekly": "Every week",
+  "@addEventRepeatWeekly": { "description": "Repeat option: weekly" },
+  "addEventRepeatMonthly": "Every month",
+  "@addEventRepeatMonthly": { "description": "Repeat option: monthly" },
+  "addEventRepeatYearly": "Every year",
+  "@addEventRepeatYearly": { "description": "Repeat option: yearly" },
+  "addEventRepeatUntilOptional": "Repeat until… (optional)",
+  "@addEventRepeatUntilOptional": { "description": "Label shown when no repeat end date is selected" },
+  "addEventRepeatUntilDate": "Until: {date}",
+  "@addEventRepeatUntilDate": {
+    "description": "Label for repeat end date with formatted date",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "addEventEndTimeError": "End time must be after the start time.",
+  "@addEventEndTimeError": { "description": "Validation error when end time precedes start time" },
+  "eventRoleDropOff": "Drop-off",
+  "@eventRoleDropOff": { "description": "Label for drop-off event role" },
+  "eventRolePickUp": "Pick-up",
+  "@eventRolePickUp": { "description": "Label for pick-up event role" },
+  "addEventAssignSegment": "Assign pickup/drop-off",
+  "@addEventAssignSegment": { "description": "Label for assign warning chip" },
+  "addEventRepeatDialogTitle": "Repeat",
+  "@addEventRepeatDialogTitle": { "description": "Title for repeat selection dialog" }
+,
+  "addEventSelectTimeTitle": "Select time",
+  "@addEventSelectTimeTitle": { "description": "Title for the custom time picker dialog" }
+,
+  "delete": "Delete",
+  "@delete": { "description": "Generic delete button label" }
+,
+  "eventUpdatedMessage": "Updated {title}",
+  "@eventUpdatedMessage": {
+    "description": "Snackbar shown after successfully updating an event",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  }
+,
+  "deleteEventTitle": "Delete event?",
+  "@deleteEventTitle": { "description": "Confirmation dialog title for deleting an event" }
+,
+  "deleteEventConfirmation": "Are you sure you want to delete \"{title}\"?",
+  "@deleteEventConfirmation": {
+    "description": "Confirmation dialog body when deleting an event",
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  }
+,
+  "eventDeletedMessage": "Event deleted",
+  "@eventDeletedMessage": { "description": "Snackbar shown after deleting an event" }
+,
+  "editEvent": "Edit event",
+  "@editEvent": { "description": "Tooltip for edit event action" }
+,
+  "addMembersTitle": "Add Members",
+  "@addMembersTitle": { "description": "Add members screen title" },
+  "close": "Close",
+  "@close": { "description": "Close button" },
+  "inviteMembersRecommendation": "We recommend letting family members create their own profile so they can access the calendar from their own devices. Send them an invite to get started.",
+  "@inviteMembersRecommendation": { "description": "Explanatory text on invite screen" },
+  "inviteByLink": "Invite by link",
+  "@inviteByLink": { "description": "Tab label for invite by link" },
+  "inviteLinkDescription": "Share this link with family members to invite them to your calendar. ",
+  "@inviteLinkDescription": { "description": "First part of invite link description" },
+  "visitHelpArticle": "Visit our help article",
+  "@visitHelpArticle": { "description": "Help article link text" },
+  "inviteLinkDescriptionSuffix": " to learn more about signing up via invitation link.",
+  "@inviteLinkDescriptionSuffix": { "description": "Last part of invite link description after help link" },
+  "copy": "Copy",
+  "@copy": { "description": "Copy button label" },
+  "generateNewLink": "Generate new link",
+  "@generateNewLink": { "description": "Generate new link button" },
+  "inviteLinkSecurityInfo": "Anyone with this link can join your family calendar. Generate a new link to invalidate the old one.",
+  "@inviteLinkSecurityInfo": { "description": "Security info about invite links" },
+  "inviteLinkCopiedSuccess": "Invite link copied to clipboard!",
+  "@inviteLinkCopiedSuccess": { "description": "Success message when link is copied" },
+  "failedToGenerateLink": "Failed to generate invite link: {error}",
+  "@failedToGenerateLink": {
+    "description": "Error message when link generation fails",
+    "placeholders": { "error": { "type": "String", "example": "Network error" } }
+  },
+  "failedToCopy": "Failed to copy: {error}",
+  "@failedToCopy": {
+    "description": "Error message when copy fails",
+    "placeholders": { "error": { "type": "String", "example": "Clipboard error" } }
+  }
 }
 

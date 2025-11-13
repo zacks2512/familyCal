@@ -124,7 +124,7 @@ class LanguageActionButton extends StatelessWidget {
 
 /// Shared dialog to switch app language
 void showLanguageDialog(BuildContext context) {
-  final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
   final l10n = AppLocalizations.of(context);
   String t(String key, String fallback) {
     switch (key) {
@@ -141,44 +141,44 @@ void showLanguageDialog(BuildContext context) {
     }
   }
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
       title: Text(t('language', 'Language')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          RadioListTile<String>(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
             title: Text(t('hebrew', 'עברית')),
-            value: 'he',
-            groupValue: localeProvider.locale.languageCode,
-            onChanged: (value) {
-              if (value != null) {
-                localeProvider.setLocale(Locale(value));
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-          RadioListTile<String>(
+              value: 'he',
+              groupValue: localeProvider.locale.languageCode,
+              onChanged: (value) {
+                if (value != null) {
+                  localeProvider.setLocale(Locale(value));
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            RadioListTile<String>(
             title: Text(t('english', 'English')),
-            value: 'en',
-            groupValue: localeProvider.locale.languageCode,
-            onChanged: (value) {
-              if (value != null) {
-                localeProvider.setLocale(Locale(value));
-                Navigator.of(context).pop();
-              }
-            },
+              value: 'en',
+              groupValue: localeProvider.locale.languageCode,
+              onChanged: (value) {
+                if (value != null) {
+                  localeProvider.setLocale(Locale(value));
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+          child: Text(t('cancel', 'Cancel')),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(t('cancel', 'Cancel')),
-        ),
-      ],
-    ),
-  );
+    );
 }
 

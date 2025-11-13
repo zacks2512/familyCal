@@ -12,6 +12,7 @@ import '../widgets/language_selector.dart';
 import '../providers/locale_provider.dart';
 import 'auth/welcome_screen.dart';
 import 'log_screen.dart';
+import 'invite_member_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -69,7 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           // CHILDREN (with color picker)
-          _SectionHeader(title: _getString('children', context)),
+          _SectionHeader(
+            title: '${_getString('children', context)} (${state.children.length})',
+          ),
           Card(
             child: Column(
               children: [
@@ -111,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   (member) => ListTile(
                     leading: const Icon(Icons.person_outline),
                     title: Text(member.displayName),
-                    subtitle:
+                  subtitle:
                         Text(member.email ?? member.phone ?? 'No contact info'),
                     trailing: member.isOwner
                         ? const Chip(
@@ -144,9 +147,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const LogScreen(),
-                  ),
-                );
-              },
+                    ),
+                  );
+                },
             ),
           ),
 
@@ -226,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Sign out failed: $e'),
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -367,127 +370,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAddOrInviteMemberDialog(BuildContext context, FamilyCalState state) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool sendInvite = true;
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSB) => AlertDialog(
-          title: const Text('Add / Invite member'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'Enter member\'s name',
-                  ),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Please enter a name' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email (optional)',
-                    hintText: 'member@example.com',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone (optional)',
-                    hintText: '+1 555 123 4567',
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                CheckboxListTile(
-                  value: sendInvite,
-                  onChanged: (v) => setSB(() => sendInvite = v ?? true),
-                  title: const Text('Send invite link'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-
-                final member = FamilyMember(
-                  id: 'member-${DateTime.now().millisecondsSinceEpoch}',
-                  displayName: nameController.text.trim(),
-                  email: emailController.text.trim().isEmpty
-                      ? null
-                      : emailController.text.trim(),
-                  phone: phoneController.text.trim().isEmpty
-                      ? null
-                      : phoneController.text.trim(),
-                );
-
-                () async {
-                  if (!AppConfig.useMockData) {
-                    final repo = FirebaseRepository();
-                    final familyId =
-                        await repo.getCurrentUserFamilyId(createIfMissing: true);
-                    if (familyId != null) {
-                      final newUserId = await repo.addFamilyMember(
-                        familyId: familyId,
-                        displayName: member.displayName,
-                        email: member.email,
-                        phone: member.phone,
-                        invitePending: sendInvite,
-                      );
-                      if (sendInvite) {
-                        await Clipboard.setData(
-                          ClipboardData(
-                            text: 'https://familycal.app/invite/$newUserId',
-                          ),
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Invite link copied ✅')),
-                          );
-                        }
-                      }
-                    }
-                  } else {
-                    state.addMember(member);
-                    if (sendInvite) {
-                      await Clipboard.setData(
-                        ClipboardData(
-                          text: 'https://familycal.app/invite/${member.id}',
-                        ),
-                      );
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invite link copied ✅')),
-                        );
-                      }
-                    }
-                  }
-                  if (context.mounted) Navigator.of(context).pop();
-                }();
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+    // Navigate to the new clean invite screen
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+        builder: (_) => const InviteMemberScreen(),
       ),
     );
   }

@@ -19,19 +19,19 @@ class FamilyCalApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = Builder(
-      builder: (context) {
-        final base = ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1A73E8),
-            brightness: Brightness.light,
-          ),
-        );
-        final colorScheme = base.colorScheme;
+        builder: (context) {
+          final base = ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF1A73E8),
+              brightness: Brightness.light,
+            ),
+          );
+          final colorScheme = base.colorScheme;
         final localeProvider = Provider.of<LocaleProvider>(context);
-        return MaterialApp(
-          title: 'FamilyCal',
-          debugShowCheckedModeBanner: false,
+          return MaterialApp(
+            title: 'FamilyCal',
+            debugShowCheckedModeBanner: false,
           // Localization (mirrors main.dart)
           locale: localeProvider.locale,
           localizationsDelegates: const [
@@ -44,45 +44,45 @@ class FamilyCalApp extends StatelessWidget {
             Locale('he'),
             Locale('en'),
           ],
-          theme: base.copyWith(
-            scaffoldBackgroundColor: Colors.white,
-            appBarTheme: base.appBarTheme.copyWith(
-              backgroundColor: Colors.white,
-              foregroundColor: colorScheme.onSurface,
-              elevation: 0,
-              titleTextStyle: base.textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            navigationBarTheme: base.navigationBarTheme.copyWith(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              indicatorColor: colorScheme.primary.withOpacity(0.12),
-              labelTextStyle: MaterialStateProperty.resolveWith(
-                (states) => base.textTheme.labelMedium?.copyWith(
-                  fontWeight: states.contains(MaterialState.selected)
-                      ? FontWeight.w600
-                      : FontWeight.w500,
+            theme: base.copyWith(
+              scaffoldBackgroundColor: Colors.white,
+              appBarTheme: base.appBarTheme.copyWith(
+                backgroundColor: Colors.white,
+                foregroundColor: colorScheme.onSurface,
+                elevation: 0,
+                titleTextStyle: base.textTheme.titleLarge?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              iconTheme: MaterialStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  color: states.contains(MaterialState.selected)
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
+              navigationBarTheme: base.navigationBarTheme.copyWith(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                indicatorColor: colorScheme.primary.withOpacity(0.12),
+                labelTextStyle: MaterialStateProperty.resolveWith(
+                  (states) => base.textTheme.labelMedium?.copyWith(
+                    fontWeight: states.contains(MaterialState.selected)
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                  ),
+                ),
+                iconTheme: MaterialStateProperty.resolveWith(
+                  (states) => IconThemeData(
+                    color: states.contains(MaterialState.selected)
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
+              textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
+              snackBarTheme: base.snackBarTheme.copyWith(
+                backgroundColor: colorScheme.primary,
+                contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
+              ),
             ),
-            textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
-            snackBarTheme: base.snackBarTheme.copyWith(
-              backgroundColor: colorScheme.primary,
-              contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: Colors.white),
-            ),
-          ),
           home: HomeShell(showSetupWelcome: showSetupWelcome),
-        );
-      },
+          );
+        },
     );
 
     if (AppConfig.useMockData) {
@@ -97,7 +97,7 @@ class FamilyCalApp extends StatelessWidget {
       return ChangeNotifierProvider<LocaleProvider>(
         create: (_) => LocaleProvider(),
         child: FirestoreAppStateProvider(child: app),
-      );
+    );
     }
   }
 }
@@ -146,7 +146,7 @@ class _HomeShellState extends State<HomeShell> {
                   const SizedBox(height: 8),
                   Text(
                     l10n?.welcomeAfterSetupBody ??
-                        'Tap + to add your first event. Swipe to change months.',
+                        'Invite family members in Settings to share your calendar. Then add events together.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
